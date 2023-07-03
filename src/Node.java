@@ -5,23 +5,29 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Node implements Components{
     private int id;
     private List<Hub> voisinsHub;
     private List<Node> voisinsNode;
-    private HashMap<Integer,List<String>> contenu; // à l'emplacement x se trouve le fichier y
+    private HashMap<String,String> contenu; // hashMap<filename,contenu> pour l'instant pas de contenu, on se contente d'avoir nom,nom
     public Node(int id)
     {
         this.id=id;
         this.voisinsHub=new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
-        this.contenu=new HashMap<>(100);
-        for(int i = 0; i<100;i++)
-        {
-            contenu.put(i,new ArrayList<>());
-        }
+        this.contenu=new HashMap<>();
+    }
+    public boolean store(String filename)
+    {
+        System.out.println("Node "+this.getId()+" store "+filename);
+        this.contenu.put(filename,filename);
+        return true;
+    }
+    public boolean read(String filename)
+    {
+        System.out.println("Node "+this.getId()+" give "+filename);
+        return this.contenu.containsKey(filename);
     }
     @Override
     public void connectTo(Components components) {
@@ -32,15 +38,6 @@ public class Node implements Components{
         else {
             this.voisinsNode.add((Node)components);
         }
-    }
-    public boolean store(String filename)
-    {
-        contenu.get(calculateHashInt(filename)%100).add(filename);
-        return true;
-    }
-    public String read(String filename)
-    {
-         return contenu.get(calculateHashInt(filename)%100).stream().filter(f -> f.equals(filename)).collect(Collectors.toList()).get(0);
     }
     private int calculateHashInt(String input) {
         try {
@@ -54,5 +51,13 @@ public class Node implements Components{
         }
 
         return 0;
+    }
+
+    public List<Hub> getVoisinsHub() {
+        return voisinsHub;
+    }
+
+    public int getId() {
+        return id;
     }
 }

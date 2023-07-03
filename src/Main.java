@@ -1,12 +1,20 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class Main {
     public static void main(String[] args) {
         List<Hub> Hubs = new ArrayList<>();
         for (int i = 0; i < 16; i++) {
-            Hubs.add(new Hub(i, 2));
+            Hubs.add(new Hub(i, 1));
         }
+        List<Node> Nodes = new ArrayList<>();
+        for(int j=0;j<200;j++)
+        {
+            Nodes.add(new Node(j));
+        }
+        Collections.shuffle(Nodes,new Random(1));
         List<List<Integer>> topology = new ArrayList<>(List.of(
                 List.of(1, 4), // hub 0
                 List.of(0, 4, 3), // hub 1
@@ -22,19 +30,38 @@ public class Main {
                 List.of(12,10,13),//hub 11
                 List.of(9,11),//hub 12
                 List.of(14,11),//hub 13
-                List.of(13)//hub 14
+                List.of(13,15),//hub 14
+                List.of(14)
         ));
+
         for(int i=0;i<topology.size();i++)
         {
             Hubs.get(i).setVoisinsHub(topology.get(i).stream().map(f->Hubs.get(f)).toList());
             Hubs.get(i).setReseauDeVoisins(topology);
             Hubs.get(i).TopologyMoyenne();
+
+            for(int n=0;n<6;n++)
+            {
+                Hubs.get(i).connectTo(Nodes.get(n));
+                Nodes.get(n).connectTo(Hubs.get(i));
+                Nodes.remove(n);
+            }
+
         }
+        System.out.println(Hubs.get(8).getVoisinsNode().stream().map(f->f.getId()).toList());
         System.out.println("fichier1");
-        Hubs.get(0).store("fichier1",3);
-        System.out.println("fichier2");
-        Hubs.get(0).store("fichier2",3);
-        System.out.println("fichier3");
-        Hubs.get(0).store("fichier3",3);
+        Hubs.get(8).store("fichier1",3);
+        Hubs.get(8).store("fichier2",3);
+        Hubs.get(8).store("fichier3",3);
+        Hubs.get(8).store("fichier4",3);
+        Hubs.get(8).store("fichier5",3);
+        Hubs.get(8).store("fichier6",3);
+        System.out.println("---------");
+        Hubs.get(0).read("fichier1",3);
+
+
+
+
+
     }
 }

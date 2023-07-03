@@ -1,5 +1,3 @@
-import com.sun.security.jgss.GSSUtil;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -8,131 +6,179 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Hub implements Components {
-    private final int id;
-    private List<Hub> voisinsHub;
-    private List<Node> voisinsNode;
-    private HashMap<String,List<Integer>> fichiers; // fichier x est dans les nodes [a,b,c]
-    private List<Double> topologyMoyenneGlobal;
-    private List<List<Integer>> reseauDeVoisins;
-    private List<fichierDemande> fichierDemande;
-    private int nbrFichier;
-    private int nbrFichierMax;
-    private List<Integer> prev;
+    private final int id; // identifiant de 0 à h
+    private List<Hub> voisinsHub; // liste des hub voisins
 
+
+
+    private List<Node> voisinsNode; // liste des nodes voisins
+    private HashMap<String,List<Integer>> fichiersHub; // fichier x est dans les hub [a,b,c]
+    private HashMap<String,Node> fichierNode; // fichier x est dans la node y
+    private List<Double> topologyMoyenneGlobal; // distance moyenne pour atteindre i
+    private List<List<Integer>> reseauDeVoisins; // réseau sous la forme reseauDeVoisins[i] = liste des voisins du hub i
+    private HashMap<String,fichierDemande> fichierDemande; // Liste de <String filename, nbr de demande> s'actualise à chaque appel de read (TODO)
+    private int nbrFichier; // nombre de fichier stocké
+    private int nbrFichierMax; // max de nombre de fichier stockable
+    private HashMap<Integer,Hub> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
+    public List<Hub> getVoisinsHub() {
+        return voisinsHub;
+    }
+    public int getNbrFichierMax() {
+        return nbrFichierMax;
+    }
+
+    private Hub routingTable(int HubId)
+    {
+
+        return routingTable.get(HubId);
+    }
+    public boolean storeTo(String filename,int hubId,int poids)
+    {
+        if(hubId==this.getId())
+        {
+            return this.take(filename,poids);
+        }
+       // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
+    }
     public Hub(int id,int nbrFichierMax)
     {
         this.id=id;
         this.voisinsHub=new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
-        this.fichierDemande=new ArrayList<>();
-        this.fichiers=new HashMap<>();
+        this.fichierDemande=new HashMap<>();
         this.nbrFichierMax=nbrFichierMax;
         this.nbrFichier=0;
-    }
-
-    public List<Integer> getVoisinsHub()
-    {
-        return voisinsHub.stream().map(Hub::getId).collect(Collectors.toList());
-    }
-    public void setNumberHub(int size)
-    {
-        this.reseauDeVoisins=new ArrayList<>();
-        for(int i=0;i<size;i++)
-        {
-            this.reseauDeVoisins=new ArrayList<>();
-        }
+        this.fichiersHub =new HashMap<>();
+        this.fichierNode=new HashMap<>();
     }
     private void addFichierDemande(String filename)
     {
-        try{
-            this.fichierDemande.stream().filter(f->f.getNom().equals(filename)).toList().get(0).addDemande();
-            this.fichierDemande.sort(Comparator.comparingInt(a -> a.getDemande()));
-        }catch (IndexOutOfBoundsException e){
-            this.fichierDemande.add(new fichierDemande(1,filename));
+        if(this.fichierDemande.get(filename)==null)
+        {
+            fichierDemande.put(filename,new fichierDemande(0,filename));
+            return;
         }
+        fichierDemande.get(filename).addDemande();
 
     }
-    public void addToVoisinsReseau(List<Integer> adjacent,int idHub)
+    public boolean giveMe(String filename,int hubId)
     {
-        this.reseauDeVoisins.set(idHub,adjacent);
+        if(this.getId()==hubId)
+        {
+            return give(filename);
+        }
+        //System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+       return this.routingTable.get(hubId).giveMe(filename,hubId);
     }
+    public boolean give(String filename)
+    {
+        if(fichierNode.containsKey(filename))
+        {
+            System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getId());
+            return this.fichierNode.get(filename).read(filename);
+        }
+        return true;
+    }
+    public String read(String filename,int replique)
+    {
+        addFichierDemande(filename);
+        int r=0;
+        int i=0;
+        List<Integer> pref = pref(filename,topologyMoyenneGlobal);
+       // System.out.println(pref);
+        while(r<replique)
+        {
+            System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
+            if(giveMe(filename,pref.get(i)))
+            {
+                System.out.println("Hub "+this.getId()+" Succesfuly found a replica ");
+                r++;
+                // TODO get the replica and check it's good version
+            }
+            i++;
+            if(i>pref.size())
+            {
+                // TODO same as store
+                System.out.println("Hub "+this.getId()+ " :Can't find enought replica");
+                break;
+            }
+        }
+        return filename;
+    }
+    public void increaseTo(int increase,List<Hub> hubAlreadyWarned) // use broadcast and prune instead
+    {
 
+        List<Hub> notWarned = voisinsHub.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
+        List<Hub> concat = new ArrayList<>(notWarned);
+        concat.addAll(hubAlreadyWarned);
+        concat.add(this);
+        int i =0;
+        while(i<notWarned.size())
+        {
+
+            notWarned.get(i).increaseTo(increase,concat);
+            i++;
+        }
+        this.nbrFichierMax=increase;
+    }
     public boolean store(String filename,int replique)
     {
         List<Integer> pref = pref(filename,this.topologyMoyenneGlobal);
-        System.out.println("pref : "+pref);
         int r=0;
         int i=0;
         while(r<replique)
         {
-            int ii=i;
-
-            if(this.voisinsHub.stream().anyMatch(f->f.getId()==pref.get(ii))){
-                Hub tmp=this.voisinsHub.stream().filter(f->f.getId()==pref.get(ii)).toList().get(0);
-                if(tmp.take(filename,10))
-                {
-                    System.out.println("if");
-                    r++;
-                    if(this.fichiers.get(filename)!=null)
-                    {
-                        this.fichiers.get(filename).add(pref.get(i));
-                    }
-                    else
-                    {
-                        this.fichiers.put(filename,new ArrayList<>(pref.get(i)));
-                    }
-                }
-            }
-            else{
-                System.out.println("Else");
-                System.out.println(prev);
-                System.out.println(pref.get(ii));
-                Hub tmp = this.voisinsHub.stream().filter(f->f.getId()==prev.get(pref.get(ii))).toList().get(0);
-                if(tmp.to(filename,10,pref.get(i)))
-                {
-                    r++;
-                }
-            }
-
-            i++;
-            if(i>pref.size())
+            if(i>=pref.size())
             {
-                System.out.println("TODO i>pref.size()");
-                break;
+               // System.out.println("Max capacity limit need to be increase ");
+                List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
+                alreadywarned.add(this);
+                for(Hub h : voisinsHub)
+                {
+                    h.increaseTo(this.nbrFichierMax+1,alreadywarned);
+                }
+                this.nbrFichierMax++;
+                i=0;
             }
+            //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
+            if(this.storeTo(filename,pref.get(i),10))
+            {
+                r++;
+                if(!this.fichiersHub.containsKey(filename))
+                {
+                    this.fichiersHub.put(filename,new ArrayList<>());
+                }
+                this.fichiersHub.get(filename).add(pref.get(i));
+                // TODO cache
+              //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " somewhere");
+            }
+            i++;
+
         }
+        System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
         return true;
-
     }
-
-    private boolean to(String filename,int poids, Integer hub) {
-        System.out.println(this.getId() + " to "+hub);
-        System.out.println(prev);
-        if(this.voisinsHub.stream().anyMatch(f->f.getId()==hub)) {
-            Hub tmp = this.voisinsHub.stream().filter(f->f.getId()==hub).toList().get(0);
-            System.out.println("Hub "+this.getId()+" direct send to "+hub);
-            return tmp.take(filename,poids);
-        }
-        else
-        {
-            Hub tmp = this.voisinsHub.stream().filter(f->f.getId()==prev.get(hub)).toList().get(0);
-            System.out.println("Hub "+this.getId()+" send to "+hub+" via "+prev.get(hub));
-            return tmp.to(filename,poids,hub);
-        }
-    }
-
     private boolean take(String filename, int poids) {
-        if(this.nbrFichier<nbrFichierMax)
+        if(this.nbrFichier<nbrFichierMax && !this.fichierNode.containsKey(filename))
         {
-            System.out.println("Hub "+this.getId()+": do something with node");
+          //  System.out.println("Hub "+this.getId()+": store in node");
             this.nbrFichier++;
+            this.storeInNode(filename);
             return true;
         }
         else
         {
-            System.out.println("Hub "+this.getId()+": do something else");
+       //     System.out.println("Hub "+this.getId()+": do something else");
             return false;
         }
+    }
+
+    private void storeInNode(String filename) {
+      Random rand = new Random(calculateHashInt(filename));
+      int thatNode = rand.nextInt(0,voisinsNode.size());
+      this.fichierNode.put(filename,voisinsNode.get(thatNode));
+      this.voisinsNode.get(thatNode).store(filename);
     }
 
     public void TopologyMoyenne()
@@ -168,7 +214,7 @@ public class Hub implements Components {
         List<Integer> pref = new ArrayList<>();
         for(int i =0;i<listeIndexRepet.size();i++)
         {
-            Random rand = new Random(hash*i%listeIndexRepet.size());
+            Random rand = new Random(hash*i);
             Collections.shuffle(listeIndexRepet.get(i),rand);
             pref.addAll(listeIndexRepet.get(i));
         }
@@ -249,8 +295,7 @@ public class Hub implements Components {
 
             }
         }
-        if(this.getId()==source) {
-
+        if(this.getId()==source) { // creation table de routage
             List<Integer> voisinsHubInt = this.voisinsHub.stream().map(f->f.getId()).toList();
             for(int p=0;p<prev.size();p++)
             {;
@@ -262,8 +307,23 @@ public class Hub implements Components {
                     }
                     prev.set(p,prev.get(prev.get(p)));
                 }
+                if(prev.get(p)==-1)
+                {
+                    prev.set(p,this.getId());
+                }
+                if(prev.get(p)==this.getId())
+                {
+                    prev.set(p,p);
+                }
             }
-            this.prev = prev;
+            this.routingTable = new HashMap<>();
+            for(int p = 0; p<prev.size();p++)
+            {
+                if(!(this.getId()==p)) {
+                    int pp = p;
+                    this.routingTable.put(p, this.voisinsHub.stream().filter(f -> f.getId() == prev.get(pp)).toList().get(0));
+                }
+            }
         }
         return listDistance;
     }
@@ -303,11 +363,7 @@ public class Hub implements Components {
         this.reseauDeVoisins = reseauDeVoisins;
     }
 
-    public List<Double> getTopologyMoyenneGlobal() {
-        return topologyMoyenneGlobal;
-    }
-
-    public List<Integer> getPrev() {
-        return prev;
+    public List<Node> getVoisinsNode() {
+        return voisinsNode;
     }
 }
