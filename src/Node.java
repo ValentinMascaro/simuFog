@@ -4,29 +4,30 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 
 public class Node implements Components{
     private int id;
     private List<Hub> voisinsHub;
     private List<Node> voisinsNode;
-    private HashMap<String,String> contenu; // hashMap<filename,contenu> pour l'instant pas de contenu, on se contente d'avoir nom,nom
+    private Hashtable<String,String> contenu; // hashMap<filename,contenu> pour l'instant pas de contenu, on se contente d'avoir nom,nom
     public Node(int id)
     {
         this.id=id;
         this.voisinsHub=new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
-        this.contenu=new HashMap<>();
+        this.contenu=new Hashtable<>();
     }
     public boolean store(String filename)
     {
-        System.out.println("Node "+this.getId()+" store "+filename);
-        this.contenu.put(filename,filename);
+        //System.out.println("Node "+this.getId()+" store "+filename);
+        this.contenu.put(filename,"Le"+filename);
         return true;
     }
     public boolean read(String filename)
     {
-        System.out.println("Node "+this.getId()+" give "+filename);
+       // System.out.println("Node "+this.getId()+" give "+filename);
         return this.contenu.containsKey(filename);
     }
     @Override
@@ -59,5 +60,9 @@ public class Node implements Components{
 
     public int getId() {
         return id;
+    }
+
+    public void remove(String nom) {
+        this.contenu.remove(nom);
     }
 }

@@ -31,7 +31,7 @@ public class Main {
                 List.of(9,11),//hub 12
                 List.of(14,11),//hub 13
                 List.of(13,15),//hub 14
-                List.of(14)
+                List.of(14) // hub 15
         ));
 
         for(int i=0;i<topology.size();i++)
@@ -49,19 +49,68 @@ public class Main {
 
         }
         System.out.println(Hubs.get(8).getVoisinsNode().stream().map(f->f.getId()).toList());
-        System.out.println("fichier1");
-        Hubs.get(8).store("fichier1",3);
-        Hubs.get(8).store("fichier2",3);
-        Hubs.get(8).store("fichier3",3);
-        Hubs.get(8).store("fichier4",3);
-        Hubs.get(8).store("fichier5",3);
+        System.out.println("--");
+        Hubs.get(1).store("fichier1",3);
+
+        Hubs.get(14).read("fichier1",3);
+        Hubs.get(5).read("fichier1",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
+
+        System.out.println("--");
+        Hubs.get(3).store("fichier2",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
+        System.out.println("--");
+        Hubs.get(10).store("fichier3",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
+        System.out.println("--");
+        Hubs.get(14).store("fichier4",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
+        System.out.println("--");
+        Hubs.get(15).store("fichier5",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
+        System.out.println("--");
         Hubs.get(8).store("fichier6",3);
+        System.out.println(Hubs.get(5).getFichierDemande());
         System.out.println("---------");
-        Hubs.get(0).read("fichier1",3);
 
+        System.out.println("--");
+        Hubs.get(3).read("fichier2",3);
+        System.out.println("--");
+        Hubs.get(4).read("fichier3",3);
+        System.out.println("--");
+        Hubs.get(7).read("fichier4",3);
+        System.out.println("--");
+        Hubs.get(10).read("fichier5",3);
+        System.out.println("--");
+        Hubs.get(0).read("fichier6",3);
+        System.out.println("Fichier --");
+        Hubs.get(0).read("fichier7",3);
 
+        System.out.println(Hubs.get(5).getFichierDemande());
 
+        Random rand=new Random(1);
+        List<Integer> alreadyHere = new ArrayList<>();
+        alreadyHere.add(1);
+        alreadyHere.add(2);
+        alreadyHere.add(3);
+        alreadyHere.add(4);
+        alreadyHere.add(5);
+        alreadyHere.add(6);
 
-
+        for(int i=0;i<100;i++)
+        {
+            int h=rand.nextInt(0,16);
+            int f = rand.nextInt(0,10);
+            if(alreadyHere.contains(f))
+            {
+                Hubs.get(h).read("fichier"+f,3);
+            }
+            else
+            {
+                Hubs.get(h).store("fichier"+f,3);
+                alreadyHere.add(f);
+            }
+        }
+        System.out.println(Hubs.stream().map(f->"Hubs "+f.getId()+" : "+f.getNbrFichier()+" / "+f.getNbrFichierMax()+" "+f.getFichierDemande()+"\n").toList());
     }
 }
