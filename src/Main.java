@@ -93,9 +93,9 @@ public class Main {
         Random rand=new Random(1);
         List<Integer> alreadyHere = new ArrayList<>();
         int seed = 10;
-        List<Integer> probaFichier  = generateRandomListWithMean(100,0,100,5,seed);
-        List<Integer> probaTirageHubs = generateRandomListWithMean(15,0,15,4,seed);
-        for(int i=0;i<10000;i++)
+        List<Integer> probaFichier  = generateListWithMean(100,5,seed);
+        List<Integer> probaTirageHubs = generateListWithMean(15,4,seed);
+        for(int i=0;i<100000;i++)
         {
             int h=rand.nextInt(0,probaTirageHubs.size());
             int f = rand.nextInt(0,probaFichier.size());
@@ -116,8 +116,40 @@ public class Main {
             }
         }
         System.out.println(Hubs.stream().map(f->"Hubs "+f.getId()+" : "+f.getNbrFichier()+" / "+f.getNbrFichierMax()+" "+f.getFichierDemande()+"\n").toList());
+        System.out.println(alreadyHere);
         System.out.println(probaTirageHubs);
         System.out.println(probaFichier);
+    }
+
+    public static List<Integer> generateListWithMean(int max, int mean,int seed) {
+        /*if (max < mean) {
+            throw new IllegalArgumentException("Le maximum doit être supérieur ou égal à la moyenne.");
+        }*/ // bah non chatgpt, on répéte les nombres donc le max peut etre supérieur, banane !
+
+        List<Integer> resultList = new ArrayList<>();
+        Random random = new Random(seed);
+
+        // Ajouter tous les entiers de 0 à max au moins une fois
+        for (int i = 0; i <= max; i++) {
+            resultList.add(i);
+        }
+
+        int remainingSum = mean * resultList.size() - resultList.stream().mapToInt(Integer::intValue).sum();
+        System.out.println("remaining sum "+remainingSum);
+        // Répéter certains entiers pour atteindre la moyenne souhaitée
+        while (remainingSum < 0) { // remaining sum est <0 la ligne du dessus, donc c l'inverse.
+            int randomIndex = random.nextInt(resultList.size());
+            resultList.add(resultList.get(randomIndex));
+            remainingSum++; //remainingSum--; // non chat gpt, c ++ pas --
+        }
+
+        // Mélanger la liste pour la rendre moins ordonnée // non chatgpt on mélange pas, on veut l'inverse banane
+        resultList.addAll(List.of(0,0,0,0,0,0,0));
+        resultList.addAll(List.of(0,0,0,0,0,0,0));
+        resultList.addAll(List.of(0,0,0,0,0,0,0));
+        Collections.sort(resultList); // parce que j'ai envie de bcp de 0
+
+        return resultList;
     }
     public static List<Integer> generateRandomListWithMean(int size, int min, int max, int mean,int seed) {
         List<Integer> resultList = new ArrayList<>();

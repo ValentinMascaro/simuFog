@@ -253,7 +253,7 @@ public class Hub implements Components {
             }
 
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
-            if(this.storeTo(filename,pref.get(i),1))
+            if(this.storeTo(filename,pref.get(i),5))
             {
                 r++;
                 if(!this.fichiersHub.containsKey(filename))
