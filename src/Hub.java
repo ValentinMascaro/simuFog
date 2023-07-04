@@ -48,18 +48,69 @@ public class Hub implements Components {
         this.fichiersHub =new HashMap<>();
         this.fichierNode=new Hashtable<>();
     }
+    public boolean write(String filename,String newContenu,int replique)
+    {
+        //System.out.println("/!\\Hub "+this.getId()+" rewriting "+filename+" by "+newContenu);
+        int r=0;
+        int i=0;
+        List<Integer> pref = pref(filename,topologyMoyenneGlobal);
+        // System.out.println(pref);
+        List<Integer> findWhere = new ArrayList<>();
+        while(r<replique)
+        {
+            if(i>=pref.size())
+            {
+                System.out.println("Hub "+this.getId()+ " :Can't find enought replica");
+                return false;
+            }
+            if(giveMe(filename,pref.get(i)))
+            {
+                findWhere.add(pref.get(i));
+                r++;
+                // TODO get the replica and check it's good version
+            }
+            i++;
+        }
+        for(Integer h : findWhere)
+        {
+
+            if(this.writeTo(filename,newContenu,h))
+            {
+              //  System.out.println("    rewrite done at hub "+h);
+            }
+            else {
+                System.out.println("    hub "+h+" can't rewrite "+filename);
+            }
+        }
+        return true;
+    }
+
+    private boolean writeTo(String filename, String newContenu, Integer h) {
+        if(h==this.getId())
+        {
+            return this.writeInNode(filename,newContenu);
+        }
+        // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        return this.routingTable.get(h).writeTo(filename,newContenu,h);
+    }
+
+    private boolean writeInNode(String filename, String newContenu) {
+        return this.fichierNode.get(filename).getNode().write(filename,newContenu);
+    }
 
     private void addFichierDemande(String filename)
     {
+        if(this.fichierNode.containsKey(filename))
+        {
+            this.fichierNode.get(filename).addDemande();
+            return;
+        }
         if(!this.fichierDemande.containsKey(filename))
         {
             fichierDemande.put(filename,new fichierDemande(0,filename));
         }
         fichierDemande.get(filename).addDemande();
-        if(this.fichierNode.containsKey(filename))
-        {
-            this.fichierNode.get(filename).addDemande();
-        }
+
     }
     public boolean giveMe(String filename,int hubId)
     {
@@ -74,7 +125,7 @@ public class Hub implements Components {
     {
         if(fichierNode.containsKey(filename))
         {
-            System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getNode().getId());
+          //  System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getNode().getId());
             return this.fichierNode.get(filename).getNode().read(filename);
         }
         return false;
@@ -106,7 +157,7 @@ public class Hub implements Components {
             i++;
 
         }
-        System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
+       // System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
         return filename;
     }
     public void increaseTo(int increase,List<Hub> hubAlreadyWarned) // broadcast and prune
@@ -162,7 +213,7 @@ public class Hub implements Components {
             i++;
 
         }
-        System.out.println("\tHub "+this.getId()+" restored "+filename.getNom()+" in hub : "+this.fichiersHub.get(filename.getNom())+" pref was "+pref);
+      //  System.out.println("\tHub "+this.getId()+" restored "+filename.getNom()+" in hub : "+this.fichiersHub.get(filename.getNom())+" pref was "+pref);
         return true;
     }
 
@@ -232,9 +283,9 @@ public class Hub implements Components {
             fichierDemande file = this.pireFichierDemande();
             if(file.calculPoids()<poids)
             {
-                System.out.println("Hubs "+this.getId()+" : "+"need to move "+file.getNom());
+             //   System.out.println("Hubs "+this.getId()+" : "+"need to move "+file.getNom());
                 this.store(file);
-                System.out.println("Hubs "+this.getId()+" : "+"remove "+file.getNom());
+           //     System.out.println("Hubs "+this.getId()+" : "+"remove "+file.getNom());
                 this.removeFile(file);
                 this.storeInNode(filename);
                 return true;
@@ -270,11 +321,11 @@ public class Hub implements Components {
 
     public  String getFichierDemande() {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Hubs "+this.getId()+" :");
+        stringBuilder.append("Hubs "+this.getId()+" :\n");
         for (String key : this.fichierNode.keySet()) {
             fichierDemande fd = this.fichierNode.get(key);
             String nom = fd.getNom();
-            stringBuilder.append("Clé : ").append(key).append(", Nom : ").append(this.fichierNode.get(fd.getNom()).calculPoids()).append("-").append(nom).append(" in node ").append(fd.getNode().getId()).append("\n");
+            stringBuilder.append("Clé : ").append(key).append(", Nom : ").append(this.fichierNode.get(fd.getNom()).calculPoids()).append("-").append(nom).append(" in node ").append(fd.getNode().getId()).append(" Contenu : "+fd.getNode().getContenu(fd.getNom())).append("\n");
         }
         for (String key : this.fichierDemande.keySet()) {
             fichierDemande fd = this.fichierDemande.get(key);
@@ -288,7 +339,15 @@ public class Hub implements Components {
     private void storeInNode(String filename) {
       Random rand = new Random(calculateHashInt(filename));
       int thatNode = rand.nextInt(0,voisinsNode.size());
-      this.fichierNode.put(filename,new fichierDemande(0,filename,this.voisinsNode.get(thatNode)));
+      if(this.fichierDemande.containsKey(filename))
+      {
+          this.fichierNode.put(filename,new fichierDemande(this.fichierDemande.get(filename).getDemande(),filename,this.voisinsNode.get(thatNode)));
+          this.fichierDemande.remove(filename);
+      }
+      else
+      {
+          this.fichierNode.put(filename,new fichierDemande(0,filename,this.voisinsNode.get(thatNode)));
+      }
       this.voisinsNode.get(thatNode).store(filename);
     }
 

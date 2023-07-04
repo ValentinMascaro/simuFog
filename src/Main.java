@@ -97,13 +97,19 @@ public class Main {
         alreadyHere.add(5);
         alreadyHere.add(6);
 
-        for(int i=0;i<100;i++)
+        for(int i=0;i<10000;i++)
         {
             int h=rand.nextInt(0,16);
-            int f = rand.nextInt(0,10);
+            int f = rand.nextInt(0,40);
             if(alreadyHere.contains(f))
             {
-                Hubs.get(h).read("fichier"+f,3);
+                if(rand.nextBoolean())
+                {
+                    Hubs.get(h).read("fichier"+f,3);
+                }
+                else {
+                    Hubs.get(h).write("fichier"+f,"Un nouveau contenu "+i,3);
+                }
             }
             else
             {

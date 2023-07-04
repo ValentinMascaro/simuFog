@@ -65,4 +65,18 @@ public class Node implements Components{
     public void remove(String nom) {
         this.contenu.remove(nom);
     }
+
+    public boolean write(String filename, String newContenu) {
+        if(this.contenu.replace(filename,newContenu)!=null)
+        {
+       //     System.out.println("Node "+this.getId()+" rewrite "+filename+" with "+newContenu);
+            return true;
+
+        }
+        return false;
+    }
+
+    public String getContenu(String nom) {
+        return this.contenu.get(nom);
+    }
 }
