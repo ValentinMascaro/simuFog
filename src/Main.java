@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
@@ -48,6 +49,7 @@ public class Main {
             }
 
         }
+        /*
         System.out.println(Hubs.get(8).getVoisinsNode().stream().map(f->f.getId()).toList());
         System.out.println("--");
         Hubs.get(1).store("fichier1",3);
@@ -87,36 +89,57 @@ public class Main {
         Hubs.get(0).read("fichier7",3);
 
         System.out.println(Hubs.get(5).getFichierDemande());
-
+*/
         Random rand=new Random(1);
         List<Integer> alreadyHere = new ArrayList<>();
-        alreadyHere.add(1);
-        alreadyHere.add(2);
-        alreadyHere.add(3);
-        alreadyHere.add(4);
-        alreadyHere.add(5);
-        alreadyHere.add(6);
-
+        int seed = 10;
+        List<Integer> probaFichier  = generateRandomListWithMean(100,0,100,5,seed);
+        List<Integer> probaTirageHubs = generateRandomListWithMean(15,0,15,4,seed);
         for(int i=0;i<10000;i++)
         {
-            int h=rand.nextInt(0,16);
-            int f = rand.nextInt(0,40);
-            if(alreadyHere.contains(f))
+            int h=rand.nextInt(0,probaTirageHubs.size());
+            int f = rand.nextInt(0,probaFichier.size());
+            if(alreadyHere.contains(probaFichier.get(f)))
             {
                 if(rand.nextBoolean())
                 {
-                    Hubs.get(h).read("fichier"+f,3);
+                    Hubs.get(probaTirageHubs.get(h)).read("fichier"+probaFichier.get(f),3);
                 }
                 else {
-                    Hubs.get(h).write("fichier"+f,"Un nouveau contenu "+i,3);
+                    Hubs.get(probaTirageHubs.get(h)).write("fichier"+probaFichier.get(f),"Un nouveau contenu "+i,3);
                 }
             }
             else
             {
-                Hubs.get(h).store("fichier"+f,3);
-                alreadyHere.add(f);
+                Hubs.get(probaTirageHubs.get(h)).store("fichier"+probaFichier.get(f),3);
+                alreadyHere.add(probaFichier.get(f));
             }
         }
         System.out.println(Hubs.stream().map(f->"Hubs "+f.getId()+" : "+f.getNbrFichier()+" / "+f.getNbrFichierMax()+" "+f.getFichierDemande()+"\n").toList());
+        System.out.println(probaTirageHubs);
+        System.out.println(probaFichier);
+    }
+    public static List<Integer> generateRandomListWithMean(int size, int min, int max, int mean,int seed) {
+        List<Integer> resultList = new ArrayList<>();
+        Random random = new Random(seed);
+
+        int sum = mean * size;
+        int remainingSum = sum;
+
+        // Generate random numbers and adjust them to get the desired mean
+        for (int i = 0; i < size - 1; i++) {
+            int randomNumber = random.nextInt(max - min + 1) + min;
+            int adjustedNumber = Math.min(randomNumber, remainingSum); // Avoid exceeding the mean
+            resultList.add(adjustedNumber);
+            remainingSum -= adjustedNumber;
+        }
+
+        // The last number is calculated to make sure the mean is exactly as desired
+        resultList.add(sum - resultList.stream().mapToInt(Integer::intValue).sum());
+
+        // Shuffle the list to make it less ordered
+      resultList=resultList.stream().sorted().collect(Collectors.toList());
+
+        return resultList;
     }
 }

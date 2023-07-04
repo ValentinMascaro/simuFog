@@ -60,7 +60,7 @@ public class Hub implements Components {
         {
             if(i>=pref.size())
             {
-                System.out.println("Hub "+this.getId()+ " :Can't find enought replica");
+                System.out.println("Hub "+this.getId()+ " :Can't find enought replica to write "+filename+" "+r+" / "+replique);
                 return false;
             }
             if(giveMe(filename,pref.get(i)))
@@ -143,7 +143,7 @@ public class Hub implements Components {
             if(i>=pref.size())
             {
                 // TODO same as store
-                System.out.println("Hub "+this.getId()+ " :Can't find enought replica");
+                System.out.println("Hub "+this.getId()+ " :Can't find enought replica to read "+filename+" "+r+" / "+replique);
                 break;
             }
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
@@ -190,7 +190,7 @@ public class Hub implements Components {
                 // System.out.println("Max capacity limit need to be increase ");
                 List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
                 alreadywarned.add(this);
-                System.out.println("increase size");
+                System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(Hub h : voisinsHub)
                 {
                     h.increaseTo(this.nbrFichierMax+1,alreadywarned);
@@ -240,10 +240,10 @@ public class Hub implements Components {
         {
             if(i>=pref.size())
             {
-               // System.out.println("Max capacity limit need to be increase ");
+                // System.out.println("Max capacity limit need to be increase ");
                 List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
                 alreadywarned.add(this);
-                System.out.println("increase2 size");
+                System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(Hub h : voisinsHub)
                 {
                     h.increaseTo(this.nbrFichierMax+1,alreadywarned);
@@ -251,6 +251,7 @@ public class Hub implements Components {
                 this.nbrFichierMax++;
                 i=0;
             }
+
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
             if(this.storeTo(filename,pref.get(i),1))
             {
@@ -287,6 +288,7 @@ public class Hub implements Components {
                 this.store(file);
            //     System.out.println("Hubs "+this.getId()+" : "+"remove "+file.getNom());
                 this.removeFile(file);
+                this.fichierDemande.put(file.getNom(),new fichierDemande(file.getDemande(),file.getNom())); // si on remove le fichier, on garde son nombre de demande en tant que demande hors de nos nodes
                 this.storeInNode(filename);
                 return true;
             }
