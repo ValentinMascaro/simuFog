@@ -176,6 +176,7 @@ public class Hub implements Components {
     public void increaseTo(int increase,List<Hub> hubAlreadyWarned) // broadcast and prune
     {
 
+        chargeReseaux+=1;
         List<Hub> notWarned = voisinsHub.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
         List<Hub> concat = new ArrayList<>(notWarned);
         concat.addAll(hubAlreadyWarned);
