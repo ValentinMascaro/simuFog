@@ -1,3 +1,8 @@
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.spi.CachingProvider;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -5,6 +10,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Hub implements Components {
+
+    private int chargeReseaux;
+    public int getChargeReseaux()
+    {
+        return chargeReseaux;
+    }
+    private Hashtable<String,String> cacheMisere;
     private final int id; // identifiant de 0 à h
     private List<Hub> voisinsHub; // liste des hub voisins
     private List<Node> voisinsNode; // liste des nodes voisins
@@ -23,22 +35,18 @@ public class Hub implements Components {
         return nbrFichierMax;
     }
 
+    public HashMap<Integer, Hub> getRoutingTable() {
+        return routingTable;
+    }
+
     private Hub routingTable(int HubId)
     {
-
         return routingTable.get(HubId);
     }
-    public boolean storeTo(String filename,int hubId,int poids)
-    {
-        if(hubId==this.getId())
-        {
-            return this.take(filename,poids);
-        }
-       // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
-        return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
-    }
+
     public Hub(int id,int nbrFichierMax)
     {
+        this.chargeReseaux=0;
         this.id=id;
         this.voisinsHub=new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
@@ -47,9 +55,11 @@ public class Hub implements Components {
         this.nbrFichier=0;
         this.fichiersHub =new HashMap<>();
         this.fichierNode=new Hashtable<>();
+
     }
     public boolean write(String filename,String newContenu,int replique)
     {
+        this.chargeReseaux+=1;
         //System.out.println("/!\\Hub "+this.getId()+" rewriting "+filename+" by "+newContenu);
         int r=0;
         int i=0;
@@ -63,6 +73,7 @@ public class Hub implements Components {
                 System.out.println("Hub "+this.getId()+ " :Can't find enought replica to write "+filename+" "+r+" / "+replique);
                 return false;
             }
+            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             if(giveMe(filename,pref.get(i)))
             {
                 findWhere.add(pref.get(i));
@@ -73,7 +84,6 @@ public class Hub implements Components {
         }
         for(Integer h : findWhere)
         {
-
             if(this.writeTo(filename,newContenu,h))
             {
               //  System.out.println("    rewrite done at hub "+h);
@@ -85,7 +95,7 @@ public class Hub implements Components {
         return true;
     }
 
-    private boolean writeTo(String filename, String newContenu, Integer h) {
+    public boolean writeTo(String filename, String newContenu, Integer h) {
         if(h==this.getId())
         {
             return this.writeInNode(filename,newContenu);
@@ -114,6 +124,7 @@ public class Hub implements Components {
     }
     public boolean giveMe(String filename,int hubId)
     {
+        chargeReseaux+=1;
         if(this.getId()==hubId)
         {
             return give(filename);
@@ -132,6 +143,7 @@ public class Hub implements Components {
     }
     public String read(String filename,int replique)
     {
+        chargeReseaux+=1;
         addFichierDemande(filename);
         int r=0;
         int i=0;
@@ -146,6 +158,7 @@ public class Hub implements Components {
                 System.out.println("Hub "+this.getId()+ " :Can't find enought replica to read "+filename+" "+r+" / "+replique);
                 break;
             }
+            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
             if(giveMe(filename,pref.get(i)))
             {
@@ -178,6 +191,7 @@ public class Hub implements Components {
     }
     public boolean store(fichierDemande filename) // remarriage
     {
+        chargeReseaux+=1;
         //System.out.println("Hub "+this.getId()+" remarriage "+filename.getNom());
         List<Integer> pref = pref(filename.getNom(),this.topologyMoyenneGlobal);
         int r=0;
@@ -187,7 +201,8 @@ public class Hub implements Components {
         {
             if(i>=pref.size())
             {
-                // System.out.println("Max capacity limit need to be increase ");
+
+               // System.out.println("Max capacity limit need to be increase ");
                 List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
                 alreadywarned.add(this);
                 System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
@@ -198,8 +213,9 @@ public class Hub implements Components {
                 this.nbrFichierMax++;
                 i=0;
             }
+            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
            // System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
-            if(this.storeTo(filename.getNom(),pref.get(i)))
+            if(this.reStoreTo(filename.getNom(),pref.get(i)))
             {
                 r++;
                 if(!this.fichiersHub.containsKey(filename))
@@ -216,13 +232,9 @@ public class Hub implements Components {
       //  System.out.println("\tHub "+this.getId()+" restored "+filename.getNom()+" in hub : "+this.fichiersHub.get(filename.getNom())+" pref was "+pref);
         return true;
     }
-
-    private boolean storeTo(String filename, Integer hubId) {
-        int poids=0;
-        if(this.fichierDemande.containsKey(filename))
-        {
-            poids=this.fichierDemande.get(filename).getDemande();
-        }
+    public boolean storeTo(String filename,int hubId,int poids)
+    {
+        chargeReseaux+=1;
         if(hubId==this.getId())
         {
             return this.take(filename,poids);
@@ -230,9 +242,26 @@ public class Hub implements Components {
         // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
         return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
     }
+   private boolean reStoreTo(String filename, Integer hubId) {
+        chargeReseaux+=1;
+        int poids=0;
+        if(this.fichierDemande.containsKey(filename))
+        {
+            poids=this.fichierDemande.get(filename).getDemande();
+      //      System.out.println("Hubs "+this.getId()+"restoreto "+filename+" poids "+poids);
+        //    System.out.println(this.getFichierDemande());
+        }
+        if(hubId==this.getId())
+        {
+            return this.take(filename,poids);
+        }
+        // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        return this.routingTable.get(hubId).reStoreTo(filename,hubId);
+    }
 
     public boolean store(String filename,int replique)
     {
+        chargeReseaux+=1;
         List<Integer> pref = pref(filename,this.topologyMoyenneGlobal);
         int r=0;
         int i=0;
@@ -243,7 +272,7 @@ public class Hub implements Components {
                 // System.out.println("Max capacity limit need to be increase ");
                 List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
                 alreadywarned.add(this);
-                System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
+              //  System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(Hub h : voisinsHub)
                 {
                     h.increaseTo(this.nbrFichierMax+1,alreadywarned);
@@ -251,9 +280,9 @@ public class Hub implements Components {
                 this.nbrFichierMax++;
                 i=0;
             }
-
+            if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
-            if(this.storeTo(filename,pref.get(i),5))
+            if(this.storeTo(filename,pref.get(i),1))
             {
                 r++;
                 if(!this.fichiersHub.containsKey(filename))
@@ -262,7 +291,7 @@ public class Hub implements Components {
                 }
                 this.fichiersHub.get(filename).add(pref.get(i));
                 // TODO cache
-              //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " somewhere");
+                System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " in "+pref.get(i));
             }
             i++;
 
@@ -271,25 +300,28 @@ public class Hub implements Components {
         return true;
     }
     private boolean take(String filename, int poids) {
+
         if(this.nbrFichier<nbrFichierMax && !this.fichierNode.containsKey(filename))
         {
           //  System.out.println("Hub "+this.getId()+": store in node");
             this.nbrFichier++;
             this.storeInNode(filename);
-
             return true;
         }
+        if(poids==0){return false;}
         else if(this.nbrFichier==this.nbrFichierMax && !this.fichierNode.containsKey(filename))
         {
             fichierDemande file = this.pireFichierDemande();
-            if(file.calculPoids()<poids)
+            if(file!=null && file.calculPoids()<poids)
             {
-             //   System.out.println("Hubs "+this.getId()+" : "+"need to move "+file.getNom());
+          //      System.out.println("Hubs "+this.getId()+" accepte "+filename+" retire "+file.getNom());
+                this.storeInNode(filename);
+                this.fichierDemande.put(file.getNom(),new fichierDemande(file.getDemande(),file.getNom())); // si on remove le fichier, on garde son nombre de demande en tant que demande hors de nos nodes
+                //   System.out.println("Hubs "+this.getId()+" : "+"need to move "+file.getNom());
+                file.lock(false);
                 this.store(file);
            //     System.out.println("Hubs "+this.getId()+" : "+"remove "+file.getNom());
                 this.removeFile(file);
-                this.fichierDemande.put(file.getNom(),new fichierDemande(file.getDemande(),file.getNom())); // si on remove le fichier, on garde son nombre de demande en tant que demande hors de nos nodes
-                this.storeInNode(filename);
                 return true;
             }
             return false;
@@ -300,6 +332,8 @@ public class Hub implements Components {
     }
 
     private void removeFile(fichierDemande file) {
+        //System.out.println("--"+this.getFichierDemande());
+        //System.out.println("remove "+file.getNom()+" "+this.getNbrFichier()+" / "+this.getNbrFichierMax());
         this.fichierNode.get(file.getNom()).getNode().remove(file.getNom());
         this.fichierNode.remove(file.getNom());
     }
@@ -308,13 +342,17 @@ public class Hub implements Components {
         String keyWithSmallestNumber = null;
         int smallestNumber = Integer.MAX_VALUE;
         for (Map.Entry<String, fichierDemande> entry : fichierNode.entrySet()) {
-            int number = entry.getValue().getDemande();
-            if (number < smallestNumber) {
-                smallestNumber = number;
-                keyWithSmallestNumber = entry.getKey();
+            if(entry.getValue().isLibre()) {
+                int number = entry.getValue().getDemande();
+                if (number < smallestNumber) {
+                    smallestNumber = number;
+                    keyWithSmallestNumber = entry.getKey();
+                }
             }
+        }if(keyWithSmallestNumber!=null) {
+            return fichierNode.get(keyWithSmallestNumber);
         }
-        return fichierNode.get(keyWithSmallestNumber);
+        return null;
     }
 
     public int getNbrFichier() {
