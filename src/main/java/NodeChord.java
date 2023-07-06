@@ -46,13 +46,13 @@ public class NodeChord {
         for(int i=0;i<topology.size();i++)
         {
             if(routingTable.containsKey(i)) {
-                for (int j = 0; j < this.ownKeySpace + 1; j++) {
-                    this.routingTableWithKeySpace.put(k, this.routingTable.get(i));
-                    k++;
+                for (int j = 1; j < this.ownKeySpace+1 ; j++) {
+                    this.routingTableWithKeySpace.put((i*10)+j, this.routingTable.get(i));
+
                 }
-            }else{k+=10;}
+            }
         }
-        /*System.out.println("Node "+this.id);
+        /*System.out.println("Node : "+this.id);
         for(int i=0;i<161;i++)
         {
             if(routingTableWithKeySpace.containsKey(i)) {
@@ -60,25 +60,36 @@ public class NodeChord {
             }
         }*/
     }
+    private int posHash(int hash,int r)
+    {
+        int retour = Math.abs((hash*r)%160);
+        if(retour==0){return 1;}
+        return retour;
+    }
     public boolean store(String filename, int replique)
     {
         this.chargeReseaux+=1;
         int hash = calculateHashInt(filename);
-        List<Integer> posF = new ArrayList<>();
         for(int i =0;i<replique;i++)
         {
-            this.storeTo(filename,hash%(i+1));
+          //  System.out.println(this.posHash(hash,i+1));
+            this.storeTo(filename,this.posHash(hash,i+1));
         }
         return true;
+    }
+    public boolean isMyOwn(int hubId)
+    {
+        //System.out.println("IsmyOwn "+this.keySpaceId+" "+hubId);
+        return (hubId<=this.keySpaceId && this.keySpaceId-hubId<=9);
     }
     public boolean storeTo(String filename,int hubId)
     {
         chargeReseaux+=1;
-        if(hubId<=this.keySpaceId && keySpaceId-hubId<=ownKeySpace)
+        if(isMyOwn(hubId))
         {
             return this.take(filename);
         }
-        //System.out.println("Node "+this.getId()+" keyspaceid : "+keySpaceId+" "+hubId+" via ");
+       // System.out.println("Node "+this.getId()+" keyspaceid : "+keySpaceId+" "+hubId+" via ");
         //System.out.println(this.routingTableWithKeySpace.get(hubId).getId());
         return this.routingTableWithKeySpace.get(hubId).storeTo(filename,hubId);
     }
@@ -94,25 +105,26 @@ public class NodeChord {
         int hash = calculateHashInt(filename);
         List<Integer> posF = new ArrayList<>();
         int i =0;
+        int r=0;
         while(i<replique)
         {
-            if(this.writeTo(filename,contenu,hash%(i+1)))
+            if(this.writeTo(filename,contenu,this.posHash(hash,i+1)))
             {
-                i++;
+                r++;
             }
             if(i>3)
             {
-                System.out.println("Can't find replica");
+                System.out.println("Node "+this.getId()+"Can't find replica "+filename+" "+this.posHash(hash,i+1));
                 return false;
             }
-
+            i++;
         }
         return true;
     }
     public boolean writeTo(String filename,String contenu,int hubId)
     {
         chargeReseaux+=1;
-        if(hubId<=this.keySpaceId && keySpaceId-hubId<=ownKeySpace)
+        if(isMyOwn(hubId))
         {
             return this.writeIn(filename,contenu);
         }
@@ -130,25 +142,26 @@ public class NodeChord {
         int hash = calculateHashInt(filename);
         int i=0;
         List<Integer> posF = new ArrayList<>();
-        while(i<replique)
+        int r=0;
+        while(r<replique)
         {
-            if(this.readTo(filename,hash%(i+1)))
+            if(this.readTo(filename,this.posHash(hash,i+1)))
             {
-                i++;
+                r++;
             }
             if(i>3)
             {
-                System.out.println("Can't find replica");
+                System.out.println("Node "+this.getId()+"Can't find replica "+filename+" "+this.posHash(hash,i+1));
                 return false;
             }
-
+            i++;
         }
         return true;
     }
     public boolean readTo(String filename,int hubId)
     {
         chargeReseaux+=1;
-        if(hubId<=this.keySpaceId && keySpaceId-hubId<=ownKeySpace)
+        if(isMyOwn(hubId))
         {
             return this.give(filename);
         }
@@ -255,5 +268,14 @@ public class NodeChord {
         }
 
         return digitList;
+    }
+    public  String getFichier() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Hubs "+this.getId()+" :\n");
+        for (Integer key : this.fileStorage.keySet()) {
+            String fd = this.fileStorage.get(key);
+            stringBuilder.append("Clé : ").append(key).append(", Nom : ").append(fileStorage.get(key)).append("\n");
+        }
+        return stringBuilder.toString();
     }
 }

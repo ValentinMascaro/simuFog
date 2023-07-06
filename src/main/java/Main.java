@@ -44,14 +44,12 @@ public class Main {
 
         }
         int seed = 10;
-        int F = 1000;
-        int S = 100000;
+        int F = 100;
+        int S = 10000;
         simuExpo(Hubs, F, S, seed);
         System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
         System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " charge reseau : " + f.getChargeReseaux() + " \n").toList());
-        List<Integer> listCharge = Hubs.stream().map(f -> f.getChargeReseaux()).toList();
-        System.out.println(listCharge.stream().mapToInt(Integer::intValue).average());
-        System.out.println(listCharge.stream().sorted().toList());
+
 
         List<NodeChord> nodeChords = new ArrayList<>();
         for (int i = 0; i < 16; i++) {
@@ -62,10 +60,18 @@ public class Main {
             nodeChords.get(i).setTopology();
         }
 
-        simuExpoNode(nodeChords,F,S,seed);
+       simuExpoNode(nodeChords,F,S,seed);
+        System.out.println(nodeChords.stream().map(f->f.getFichier()).toList());
+       List<Integer> listCharge = Hubs.stream().map(f -> f.getChargeReseaux()).toList();
+        System.out.println(listCharge.stream().mapToInt(Integer::intValue).average());
+        System.out.println(listCharge.stream().sorted().toList());
         List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
         System.out.println(listCharge2.stream().mapToInt(Integer::intValue).average());
         System.out.println(listCharge2.stream().sorted().toList());
+        //System.out.println(nodeChords.get(2).store("fichier2",3));
+       // System.out.println(nodeChords.get(13).read("fichier2",3));
+
+
     }
 
     private static void simuExpo(List<Hub> hubs,int F, int S, int seed) {
