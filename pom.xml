@@ -13,10 +13,11 @@
     <version>1.1.1</version>
 </dependency>
     <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>5.2.0</version>
-    </dependency></dependencies>
+        <groupId>org.jsr107.ri</groupId>
+        <artifactId>cache-ri-impl</artifactId>
+        <version>1.1.1</version>
+    </dependency>
+</dependencies>
     <properties>
         <maven.compiler.source>20</maven.compiler.source>
         <maven.compiler.target>20</maven.compiler.target>

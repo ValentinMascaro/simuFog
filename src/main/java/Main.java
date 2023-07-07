@@ -1,8 +1,14 @@
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.spi.CachingProvider;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
+//Moyenne ASFOptionalDouble[995039.0625]
         List<Hub> Hubs = new ArrayList<>();
         for (int i = 0; i < 16; i++) {
             Hubs.add(new Hub(i, 2));
@@ -43,12 +49,12 @@ public class Main {
             }
 
         }
-        int seed = 10;
-        int F = 100;
-        int S = 10000;
+        int seed = 4;
+        int F = 300;
+        int S = 500000;
         simuExpo(Hubs, F, S, seed);
         System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
-        System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " charge reseau : " + f.getChargeReseaux() + " \n").toList());
+       // System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " charge reseau : " + f.getChargeReseaux() + " \n").toList());
 
 
         List<NodeChord> nodeChords = new ArrayList<>();
@@ -60,17 +66,27 @@ public class Main {
             nodeChords.get(i).setTopology();
         }
 
-       simuExpoNode(nodeChords,F,S,seed);
+       List<Integer> alreadtEncounter = simuExpoNode(nodeChords,F,S,seed);
         System.out.println(nodeChords.stream().map(f->f.getFichier()).toList());
-       List<Integer> listCharge = Hubs.stream().map(f -> f.getChargeReseaux()).toList();
-        System.out.println(listCharge.stream().mapToInt(Integer::intValue).average());
-        System.out.println(listCharge.stream().sorted().toList());
-        List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
-        System.out.println(listCharge2.stream().mapToInt(Integer::intValue).average());
-        System.out.println(listCharge2.stream().sorted().toList());
-        //System.out.println(nodeChords.get(2).store("fichier2",3));
-       // System.out.println(nodeChords.get(13).read("fichier2",3));
+       List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
+        List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
+        List<Integer> ASFReStore = Hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
+        List<Integer> ASFWrite = Hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
+        List<Integer> ASFGlobal = Hubs.stream().map(f->f.getChargeReseaux()).toList();
+        System.out.println("Moyenne ASF"+ASFGlobal.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne ASF Store"+ASFStore.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne ASF Read"+ASFRead.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne ASF Restore"+ASFReStore.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne ASF Write"+ASFWrite.stream().mapToInt(Integer::intValue).average());
 
+        List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
+        List<Integer> chordRead = nodeChords.stream().map(f -> f.getChargeReseauxRead()).toList();
+        List<Integer> chordStore = nodeChords.stream().map(f -> f.getChargeReseauxStore()).toList();
+        List<Integer> chordWrite = nodeChords.stream().map(f -> f.getChargeReseauxWrite()).toList();
+        System.out.println("Moyenne chord"+listCharge2.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne chord Store"+chordStore.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne chord Read"+chordRead.stream().mapToInt(Integer::intValue).average());
+        System.out.println("Moyenne chord Write"+chordWrite.stream().mapToInt(Integer::intValue).average());
 
     }
 
@@ -125,7 +141,7 @@ public class Main {
         s++;
         }
     }
-    private static void simuExpoNode(List<NodeChord> hubs,int F, int S, int seed) { // TODO reformater
+    private static List<Integer> simuExpoNode(List<NodeChord> hubs,int F, int S, int seed) { // TODO reformater
         int H = hubs.size(); // H nombre de hubs , F nombre de file , S nombre de demande TOTAL ( ecriture/lecture/reecriture )
         List<Pair<Integer,Integer>> simulation = new ArrayList<>();
         List<Integer> alreadyEncounter = new ArrayList<>();
@@ -175,5 +191,6 @@ public class Main {
             }
             s++;
         }
+        return alreadyEncounter;
     }
 }

@@ -12,10 +12,36 @@ import java.util.*;
 public class Hub implements Components {
 
     private int chargeReseaux;
-    public int getChargeReseaux()
-    {
-        return chargeReseaux;
+    private int chargeReseauxRead;
+    private int chargeReseauxWrite;
+    private int chargeReseauxStore;
+    private int chargeReseauxReStore;
+    private int chargeReseauxIncrease;
+
+    public int getChargeReseaux() {
+        return this.chargeReseauxIncrease+this.chargeReseauxReStore+this.chargeReseauxStore+this.chargeReseauxWrite+this.chargeReseauxRead;
     }
+
+    public int getChargeReseauxRead() {
+        return chargeReseauxRead;
+    }
+
+    public int getChargeReseauxWrite() {
+        return chargeReseauxWrite;
+    }
+
+    public int getChargeReseauxStore() {
+        return chargeReseauxStore;
+    }
+
+    public int getChargeReseauxReStore() {
+        return chargeReseauxReStore;
+    }
+
+    public int getChargeReseauxIncrease() {
+        return chargeReseauxIncrease;
+    }
+
     private Hashtable<String,String> cacheMisere;
     private final int id; // identifiant de 0 à h
     private List<Hub> voisinsHub; // liste des hub voisins
@@ -43,10 +69,18 @@ public class Hub implements Components {
     {
         return routingTable.get(HubId);
     }
-
+    CachingProvider cachingProvider;
+    CacheManager cacheManager;
+    MutableConfiguration<String, List<Integer>> config;
+    Cache<String, List<Integer>> cache;
     public Hub(int id,int nbrFichierMax)
     {
         this.chargeReseaux=0;
+        this.chargeReseauxRead=0;
+        this.chargeReseauxIncrease=0;
+        this.chargeReseauxWrite=0;
+        this.chargeReseauxStore=0;
+        this.chargeReseauxReStore=0;
         this.id=id;
         this.voisinsHub=new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
@@ -55,11 +89,17 @@ public class Hub implements Components {
         this.nbrFichier=0;
         this.fichiersHub =new HashMap<>();
         this.fichierNode=new Hashtable<>();
-
+         this.cachingProvider = Caching.getCachingProvider();
+         this.cacheManager = cachingProvider.getCacheManager();
+        this.config
+                = new MutableConfiguration<>();
+        cache = cacheManager
+                .createCache("simpleCache"+this.getId(), config);
+        //cache.close();
     }
     public boolean write(String filename,String newContenu,int replique)
     {
-        this.chargeReseaux+=1;
+        this.chargeReseauxWrite+=1;
         //System.out.println("/!\\Hub "+this.getId()+" rewriting "+filename+" by "+newContenu);
         int r=0;
         int i=0;
@@ -73,7 +113,7 @@ public class Hub implements Components {
                 System.out.println("Hub "+this.getId()+ " :Can't find enought replica to write "+filename+" "+r+" / "+replique);
                 return false;
             }
-            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
+           // if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             if(giveMe(filename,pref.get(i)))
             {
                 findWhere.add(pref.get(i));
@@ -96,6 +136,7 @@ public class Hub implements Components {
     }
 
     public boolean writeTo(String filename, String newContenu, Integer h) {
+        this.chargeReseauxWrite+=1;
         if(h==this.getId())
         {
             return this.writeInNode(filename,newContenu);
@@ -124,7 +165,7 @@ public class Hub implements Components {
     }
     public boolean giveMe(String filename,int hubId)
     {
-        chargeReseaux+=1;
+        chargeReseauxRead+=1;
         if(this.getId()==hubId)
         {
             return give(filename);
@@ -143,13 +184,30 @@ public class Hub implements Components {
     }
     public String read(String filename,int replique)
     {
-        chargeReseaux+=1;
+        List<Integer> presence = new ArrayList<>();
+        chargeReseauxRead+=1;
         addFichierDemande(filename);
         int r=0;
+        if(cache.containsKey(filename))
+        {
+            List<Integer> leCache = cache.get(filename);
+            int i=0;
+            while(i<leCache.size())
+            {
+                if(giveMe(filename,leCache.get(i)))
+                {
+                    r++;
+                    presence.add(leCache.get(i));
+                }
+                i++;
+            }
+        }
         int i=0;
         List<Integer> pref = pref(filename,topologyMoyenneGlobal);
-       // System.out.println(pref);
-        List<Integer> findWhere = new ArrayList<>();
+       if(cache.containsKey(filename))
+       {
+           pref.removeAll(cache.get(filename)); // TODO opti
+       }
         while(r<replique)
         {
             if(i>=pref.size())
@@ -158,25 +216,30 @@ public class Hub implements Components {
                 System.out.println("Hub "+this.getId()+ " :Can't find enought replica to read "+filename+" "+r+" / "+replique);
                 break;
             }
-            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
+            //if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
             if(giveMe(filename,pref.get(i)))
             {
               //  System.out.println("Hub "+this.getId()+" Succesfuly found a replica ");
-                findWhere.add(pref.get(i));
+                presence.add(pref.get(i));
                 r++;
                 // TODO get the replica and check it's good version
             }
             i++;
 
         }
+        if(cache.containsKey(filename))
+        {
+            cache.remove(filename);
+        }
+        cache.put(filename,presence);
        // System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
         return filename;
     }
     public void increaseTo(int increase,List<Hub> hubAlreadyWarned) // broadcast and prune
     {
 
-        chargeReseaux+=1;
+        chargeReseauxIncrease+=1;
         List<Hub> notWarned = voisinsHub.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
         List<Hub> concat = new ArrayList<>(notWarned);
         concat.addAll(hubAlreadyWarned);
@@ -184,7 +247,6 @@ public class Hub implements Components {
         int i =0;
         while(i<notWarned.size())
         {
-
             notWarned.get(i).increaseTo(increase,concat);
             i++;
         }
@@ -192,9 +254,13 @@ public class Hub implements Components {
     }
     public boolean store(fichierDemande filename) // remarriage
     {
-        chargeReseaux+=1;
+        chargeReseauxReStore+=1;
+        int presence=0;
         //System.out.println("Hub "+this.getId()+" remarriage "+filename.getNom());
         List<Integer> pref = pref(filename.getNom(),this.topologyMoyenneGlobal);
+        if(cache.containsKey(filename.getNom())){
+            pref.removeAll(cache.get(filename.getNom()));
+        }
         int r=0;
         int i=0;
         int replique=1;
@@ -202,19 +268,18 @@ public class Hub implements Components {
         {
             if(i>=pref.size())
             {
-
                // System.out.println("Max capacity limit need to be increase ");
                 List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
                 alreadywarned.add(this);
                 System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(Hub h : voisinsHub)
                 {
-                    h.increaseTo(this.nbrFichierMax+1,alreadywarned);
+                    h.increaseTo(this.nbrFichierMax*2,alreadywarned);
                 }
-                this.nbrFichierMax++;
+                this.nbrFichierMax*=2;
                 i=0;
             }
-            if(pref.get(i)==this.getId()){chargeReseaux-=1;}
+           // if(pref.get(i)==this.getId()){chargeReseaux-=1;}
            // System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
             if(this.reStoreTo(filename.getNom(),pref.get(i)))
             {
@@ -224,18 +289,32 @@ public class Hub implements Components {
                     this.fichiersHub.put(filename.getNom(),new ArrayList<>());
                 }
                 this.fichiersHub.get(filename.getNom()).add(pref.get(i));
+
+                presence=pref.get(i);
                 // TODO cache
                 //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " somewhere");
             }
             i++;
-
+        }
+        if(this.cache.containsKey(filename.getNom()))
+        {
+            List<Integer> tmp = this.cache.get(filename.getNom()); // car remove(i) c l'indice, pas l'id
+            for(int j=0;j<tmp.size();j++)
+            {
+                if(tmp.get(j)==this.getId())
+                {
+                    tmp.remove(j);
+                }
+                this.cache.remove(filename.getNom());
+                this.cache.put(filename.getNom(),tmp);
+            }
         }
       //  System.out.println("\tHub "+this.getId()+" restored "+filename.getNom()+" in hub : "+this.fichiersHub.get(filename.getNom())+" pref was "+pref);
         return true;
     }
     public boolean storeTo(String filename,int hubId,int poids)
     {
-        chargeReseaux+=1;
+        chargeReseauxStore+=1;
         if(hubId==this.getId())
         {
             return this.take(filename,poids);
@@ -244,7 +323,7 @@ public class Hub implements Components {
         return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
     }
    private boolean reStoreTo(String filename, Integer hubId) {
-        chargeReseaux+=1;
+        chargeReseauxReStore+=1;
         int poids=0;
         if(this.fichierDemande.containsKey(filename))
         {
@@ -262,7 +341,7 @@ public class Hub implements Components {
 
     public boolean store(String filename,int replique)
     {
-        chargeReseaux+=1;
+        chargeReseauxStore+=1;
         List<Integer> pref = pref(filename,this.topologyMoyenneGlobal);
         int r=0;
         int i=0;
@@ -281,7 +360,7 @@ public class Hub implements Components {
                 this.nbrFichierMax++;
                 i=0;
             }
-            if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
+          //  if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
             if(this.storeTo(filename,pref.get(i),1))
             {
@@ -297,6 +376,7 @@ public class Hub implements Components {
             i++;
 
         }
+        this.cache.put(filename,this.fichiersHub.get(filename));
         System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
         return true;
     }

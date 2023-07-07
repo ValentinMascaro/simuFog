@@ -9,6 +9,23 @@ import java.util.List;
 public class NodeChord {
 
     private int chargeReseaux;
+    private int chargeReseauxRead;
+    private int chargeReseauxWrite;
+    private int chargeReseauxStore;
+
+    private int chargeReseauxIncrease;
+
+    public int getChargeReseauxRead() {
+        return chargeReseauxRead;
+    }
+
+    public int getChargeReseauxWrite() {
+        return chargeReseauxWrite;
+    }
+
+    public int getChargeReseauxStore() {
+        return chargeReseauxStore;
+    }
 
     public int getChargeReseaux() {
         return chargeReseaux;
@@ -26,6 +43,9 @@ public class NodeChord {
 
     public NodeChord(int id, List<List<Integer>> topology, int keySpace)
     {
+        this.chargeReseauxRead=0;
+        this.chargeReseauxStore=0;
+        this.chargeReseauxWrite=0;
         this.chargeReseaux=0;
         this.ownKeySpace=keySpace / topology.size() ;
         this.keySpaceId=(1+id)*ownKeySpace;
@@ -69,6 +89,7 @@ public class NodeChord {
     public boolean store(String filename, int replique)
     {
         this.chargeReseaux+=1;
+        this.chargeReseauxStore+=1;
         int hash = calculateHashInt(filename);
         for(int i =0;i<replique;i++)
         {
@@ -84,7 +105,8 @@ public class NodeChord {
     }
     public boolean storeTo(String filename,int hubId)
     {
-        chargeReseaux+=1;
+        this.chargeReseaux+=1;
+        this.chargeReseauxStore+=1;
         if(isMyOwn(hubId))
         {
             return this.take(filename);
@@ -101,7 +123,8 @@ public class NodeChord {
     }
     public boolean write(String filename, String contenu, int replique)
     {
-        chargeReseaux+=1;
+        this.chargeReseaux+=1;
+        this.chargeReseauxWrite+=1;
         int hash = calculateHashInt(filename);
         List<Integer> posF = new ArrayList<>();
         int i =0;
@@ -123,7 +146,8 @@ public class NodeChord {
     }
     public boolean writeTo(String filename,String contenu,int hubId)
     {
-        chargeReseaux+=1;
+        this.chargeReseaux+=1;
+        this.chargeReseauxWrite+=1;
         if(isMyOwn(hubId))
         {
             return this.writeIn(filename,contenu);
@@ -138,7 +162,8 @@ public class NodeChord {
     }
     public boolean read(String filename, int replique)
     {
-        chargeReseaux+=1;
+        this.chargeReseaux+=1;
+        this.chargeReseauxRead+=1;
         int hash = calculateHashInt(filename);
         int i=0;
         List<Integer> posF = new ArrayList<>();
@@ -160,7 +185,9 @@ public class NodeChord {
     }
     public boolean readTo(String filename,int hubId)
     {
-        chargeReseaux+=1;
+        this.chargeReseaux+=1;
+        this.chargeReseauxRead+=1;
+
         if(isMyOwn(hubId))
         {
             return this.give(filename);
