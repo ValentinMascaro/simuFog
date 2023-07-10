@@ -9,7 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-public class Hub implements Components {
+public class Hub extends AbstractCompo {
 
     private int chargeReseaux;
     private int chargeReseauxRead;
@@ -44,7 +44,7 @@ public class Hub implements Components {
 
     private Hashtable<String,String> cacheMisere;
     private final int id; // identifiant de 0 à h
-    private List<Hub> voisinsHub; // liste des hub voisins
+    private List<AbstractCompo> voisins; // liste des hub voisins
     private List<Node> voisinsNode; // liste des nodes voisins
     private HashMap<String,List<Integer>> fichiersHub; // fichier x est dans les hub [a,b,c]
     private Hashtable<String,fichierDemande> fichierNode; // fichier x est dans la node y
@@ -53,19 +53,19 @@ public class Hub implements Components {
     private HashMap<String,fichierDemande> fichierDemande; // Liste de <String filename, nbr de demande> s'actualise à chaque appel de read (TODO)
     private int nbrFichier; // nombre de fichier stocké
     private int nbrFichierMax; // max de nombre de fichier stockable
-    private HashMap<Integer,Hub> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
-    public List<Hub> getVoisinsHub() {
-        return voisinsHub;
+    private HashMap<Integer,AbstractCompo> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
+    public List<AbstractCompo> getVoisins() {
+        return voisins;
     }
     public int getNbrFichierMax() {
         return nbrFichierMax;
     }
 
-    public HashMap<Integer, Hub> getRoutingTable() {
+    public HashMap<Integer, AbstractCompo> getRoutingTable() {
         return routingTable;
     }
 
-    private Hub routingTable(int HubId)
+    private AbstractCompo routingTable(int HubId)
     {
         return routingTable.get(HubId);
     }
@@ -82,7 +82,7 @@ public class Hub implements Components {
         this.chargeReseauxStore=0;
         this.chargeReseauxReStore=0;
         this.id=id;
-        this.voisinsHub=new ArrayList<>();
+        this.voisins =new ArrayList<>();
         this.voisinsNode=new ArrayList<>();
         this.fichierDemande =new HashMap<>();
         this.nbrFichierMax=nbrFichierMax;
@@ -105,7 +105,6 @@ public class Hub implements Components {
         int i=0;
         List<Integer> pref = pref(filename,topologyMoyenneGlobal);
         // System.out.println(pref);
-        List<Integer> findWhere = new ArrayList<>();
         while(r<replique)
         {
             if(i>=pref.size())
@@ -114,39 +113,34 @@ public class Hub implements Components {
                 return false;
             }
            // if(pref.get(i)==this.getId()){chargeReseaux-=1;}
-            if(giveMe(filename,pref.get(i)))
+            //System.out.println("Hubs "+this.getId()+" Write to "+filename+" "+newContenu+" "+pref.get(i));
+            if(writeTo(filename,newContenu,pref.get(i)))
             {
-                findWhere.add(pref.get(i));
                 r++;
                 // TODO get the replica and check it's good version
             }
             i++;
         }
-        for(Integer h : findWhere)
-        {
-            if(this.writeTo(filename,newContenu,h))
-            {
-              //  System.out.println("    rewrite done at hub "+h);
-            }
-            else {
-                System.out.println("    hub "+h+" can't rewrite "+filename);
-            }
-        }
         return true;
     }
 
-    public boolean writeTo(String filename, String newContenu, Integer h) {
+    public boolean writeTo(String filename, String newContenu, int h) {
         this.chargeReseauxWrite+=1;
-        if(h==this.getId())
+        if(fichierNode.containsKey(filename))
         {
             return this.writeInNode(filename,newContenu);
         }
-        // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        if(h==this.getId())
+        {
+            return false;
+        }
+  //      System.out.println("Hubs "+this.getId()+" need to "+h);
+    //    System.out.println("Hub "+this.getId()+" go by "+routingTable.get(h).getId());
         return this.routingTable.get(h).writeTo(filename,newContenu,h);
     }
 
     private boolean writeInNode(String filename, String newContenu) {
-        return this.fichierNode.get(filename).getNode().write(filename,newContenu);
+        return this.fichierNode.get(filename).getNode().write(filename,newContenu,1); // 1 inutile
     }
 
     private void addFichierDemande(String filename)
@@ -163,7 +157,7 @@ public class Hub implements Components {
         fichierDemande.get(filename).addDemande();
 
     }
-    public boolean giveMe(String filename,int hubId)
+    public boolean readTo(String filename, int hubId)
     {
         chargeReseauxRead+=1;
         if(this.getId()==hubId)
@@ -171,18 +165,18 @@ public class Hub implements Components {
             return give(filename);
         }
         //System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
-       return this.routingTable.get(hubId).giveMe(filename,hubId);
+       return this.routingTable.get(hubId).readTo(filename,hubId);
     }
     public boolean give(String filename)
     {
         if(fichierNode.containsKey(filename))
         {
           //  System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getNode().getId());
-            return this.fichierNode.get(filename).getNode().read(filename);
+            return this.fichierNode.get(filename).getNode().read(filename,1); // 1 inutile
         }
         return false;
     }
-    public String read(String filename,int replique)
+    public boolean read(String filename,int replique)
     {
         List<Integer> presence = new ArrayList<>();
         chargeReseauxRead+=1;
@@ -194,7 +188,7 @@ public class Hub implements Components {
             int i=0;
             while(i<leCache.size())
             {
-                if(giveMe(filename,leCache.get(i)))
+                if(readTo(filename,leCache.get(i)))
                 {
                     r++;
                     presence.add(leCache.get(i));
@@ -214,11 +208,11 @@ public class Hub implements Components {
             {
                 // TODO same as store
                 System.out.println("Hub "+this.getId()+ " :Can't find enought replica to read "+filename+" "+r+" / "+replique);
-                break;
+               return false;
             }
             //if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
-            if(giveMe(filename,pref.get(i)))
+            if(readTo(filename,pref.get(i)))
             {
               //  System.out.println("Hub "+this.getId()+" Succesfuly found a replica ");
                 presence.add(pref.get(i));
@@ -234,14 +228,14 @@ public class Hub implements Components {
         }
         cache.put(filename,presence);
        // System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
-        return filename;
+        return true;
     }
-    public void increaseTo(int increase,List<Hub> hubAlreadyWarned) // broadcast and prune
+    public void increaseTo(int increase,List<AbstractCompo> hubAlreadyWarned) // broadcast and prune
     {
 
         chargeReseauxIncrease+=1;
-        List<Hub> notWarned = voisinsHub.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
-        List<Hub> concat = new ArrayList<>(notWarned);
+        List<AbstractCompo> notWarned = voisins.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
+        List<AbstractCompo> concat = new ArrayList<>(notWarned);
         concat.addAll(hubAlreadyWarned);
         concat.add(this);
         int i =0;
@@ -269,10 +263,10 @@ public class Hub implements Components {
             if(i>=pref.size())
             {
                // System.out.println("Max capacity limit need to be increase ");
-                List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
+                List<AbstractCompo> alreadywarned=new ArrayList<>(voisins);
                 alreadywarned.add(this);
-                System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
-                for(Hub h : voisinsHub)
+               // System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
+                for(AbstractCompo h : voisins)
                 {
                     h.increaseTo(this.nbrFichierMax*2,alreadywarned);
                 }
@@ -322,7 +316,7 @@ public class Hub implements Components {
         // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
         return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
     }
-   private boolean reStoreTo(String filename, Integer hubId) {
+   public boolean reStoreTo(String filename, int hubId) {
         chargeReseauxReStore+=1;
         int poids=0;
         if(this.fichierDemande.containsKey(filename))
@@ -350,12 +344,12 @@ public class Hub implements Components {
             if(i>=pref.size())
             {
                 // System.out.println("Max capacity limit need to be increase ");
-                List<Hub> alreadywarned=new ArrayList<>(voisinsHub);
+                List<AbstractCompo> alreadywarned=new ArrayList<>(voisins);
                 alreadywarned.add(this);
               //  System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
-                for(Hub h : voisinsHub)
+                for(AbstractCompo h : voisins)
                 {
-                    h.increaseTo(this.nbrFichierMax+1,alreadywarned);
+                    h.increaseTo(this.nbrFichierMax*2,alreadywarned);
                 }
                 this.nbrFichierMax++;
                 i=0;
@@ -371,16 +365,16 @@ public class Hub implements Components {
                 }
                 this.fichiersHub.get(filename).add(pref.get(i));
                 // TODO cache
-                System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " in "+pref.get(i));
+              //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " in "+pref.get(i));
             }
             i++;
 
         }
         this.cache.put(filename,this.fichiersHub.get(filename));
-        System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
+      //  System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
         return true;
     }
-    private boolean take(String filename, int poids) {
+    public boolean take(String filename, int poids) {
 
         if(this.nbrFichier<nbrFichierMax && !this.fichierNode.containsKey(filename))
         {
@@ -469,7 +463,7 @@ public class Hub implements Components {
       {
           this.fichierNode.put(filename,new fichierDemande(0,filename,this.voisinsNode.get(thatNode)));
       }
-      this.voisinsNode.get(thatNode).store(filename);
+      this.voisinsNode.get(thatNode).store(filename,1); // 1 inutile
     }
 
     public void TopologyMoyenne()
@@ -587,7 +581,7 @@ public class Hub implements Components {
             }
         }
         if(this.getId()==source) { // creation table de routage
-            List<Integer> voisinsHubInt = this.voisinsHub.stream().map(f->f.getId()).toList();
+            List<Integer> voisinsHubInt = this.voisins.stream().map(f->f.getId()).toList();
             for(int p=0;p<prev.size();p++)
             {;
                 while(!voisinsHubInt.contains(prev.get(p)))
@@ -612,7 +606,7 @@ public class Hub implements Components {
             {
                 if(!(this.getId()==p)) {
                     int pp = p;
-                    this.routingTable.put(p, this.voisinsHub.stream().filter(f -> f.getId() == prev.get(pp)).toList().get(0));
+                    this.routingTable.put(p, this.voisins.stream().filter(f -> f.getId() == prev.get(pp)).toList().get(0));
                 }
             }
         }
@@ -635,19 +629,19 @@ public class Hub implements Components {
         return id;
     }
 
-    @Override
+
     public void connectTo(Components components) {
         if(components instanceof Hub)
         {
-            this.voisinsHub.add((Hub)components);
+            this.voisins.add((Hub)components);
         }
         else {
             this.voisinsNode.add((Node)components);
         }
     }
 
-    public void setVoisinsHub(List<Hub> voisinsHub) {
-        this.voisinsHub = voisinsHub;
+    public void setVoisins(List<AbstractCompo> voisinsHub) {
+        this.voisins = voisinsHub;
     }
 
     public void setReseauDeVoisins(List<List<Integer>> reseauDeVoisins) {

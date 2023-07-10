@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class NodeChord {
+public class NodeChord extends AbstractCompo{
 
     private int chargeReseaux;
     private int chargeReseauxRead;
@@ -35,10 +35,10 @@ public class NodeChord {
     private int id;
     private int ownKeySpace;
     private int keySpace;
-    List<NodeChord> voisins;
+    List<AbstractCompo> voisins;
     List<List<Integer>> topology;
-    private HashMap<Integer,NodeChord> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
-    private HashMap<Integer,NodeChord> routingTableWithKeySpace;//
+    private HashMap<Integer,AbstractCompo> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
+    private HashMap<Integer,AbstractCompo> routingTableWithKeySpace;//
     private HashMap<Integer,String> fileStorage;
 
     public NodeChord(int id, List<List<Integer>> topology, int keySpace)
@@ -55,7 +55,7 @@ public class NodeChord {
         this.routingTableWithKeySpace=new HashMap<>();
         this.fileStorage=new HashMap<>();
     }
-    public void setVoisins( List<NodeChord> voisins)
+    public void setVoisins( List<AbstractCompo> voisins)
     {
         this.voisins=voisins;
     }

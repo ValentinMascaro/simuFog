@@ -19,18 +19,18 @@ public class Node implements Components{
         this.voisinsNode=new ArrayList<>();
         this.contenu=new Hashtable<>();
     }
-    public boolean store(String filename)
+    public boolean store(String filename, int replique)
     {
         //System.out.println("Node "+this.getId()+" store "+filename);
         this.contenu.put(filename,"Le"+filename);
         return true;
     }
-    public boolean read(String filename)
+    public boolean read(String filename, int replique)
     {
        // System.out.println("Node "+this.getId()+" give "+filename);
         return this.contenu.containsKey(filename);
     }
-    @Override
+
     public void connectTo(Components components) {
         if(components instanceof Hub)
         {
@@ -66,7 +66,7 @@ public class Node implements Components{
         this.contenu.remove(nom);
     }
 
-    public boolean write(String filename, String newContenu) {
+    public boolean write(String filename, String newContenu,int replique) {
         if(this.contenu.replace(filename,newContenu)!=null)
         {
        //     System.out.println("Node "+this.getId()+" rewrite "+filename+" with "+newContenu);
