@@ -4,6 +4,7 @@ import java.util.List;
 public class fichierDemande {
     private int demande;
     private String nom;
+    public String contenu;
     private Node node;
 
     private int poids;
@@ -12,6 +13,12 @@ public class fichierDemande {
     public fichierDemande(int demande, String nom) {
         this.demande = demande;
         this.nom = nom;
+        this.lock=true;
+    }
+    public fichierDemande(int demande, String nom,String contenu) {
+        this.demande = demande;
+        this.nom = nom;
+        this.contenu=contenu;
         this.lock=true;
     }
     public void lock(boolean isLibre)

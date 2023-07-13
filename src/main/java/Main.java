@@ -30,9 +30,9 @@ public class Main {
             int S = 300000;
             int C = 3;
             int R = 4;
-            List<AbstractCompo> Hubs = new ArrayList<>();
+            List<AbstractNode> Hubs = new ArrayList<>();
             for (int i = 0; i < 16; i++) {
-                Hubs.add(new Hub(i, 2));
+
             }
             List<Node> Nodes = new ArrayList<>();
             for (int j = 0; j < 200; j++) {

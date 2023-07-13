@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class NodeChord extends AbstractCompo{
+public class NodeChord extends AbstractCompo{ // TODO
 
     private int chargeReseaux;
     private int chargeReseauxRead;
