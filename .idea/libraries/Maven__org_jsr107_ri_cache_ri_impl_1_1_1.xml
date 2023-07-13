@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.jsr107.ri:cache-ri-impl:1.1.1">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jsr107/ri/cache-ri-impl/1.1.1/cache-ri-impl-1.1.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jsr107/ri/cache-ri-impl/1.1.1/cache-ri-impl-1.1.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/jsr107/ri/cache-ri-impl/1.1.1/cache-ri-impl-1.1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
