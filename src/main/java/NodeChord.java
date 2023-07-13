@@ -105,12 +105,13 @@ public class NodeChord extends AbstractCompo{
     }
     public boolean storeTo(String filename,int hubId)
     {
-        this.chargeReseaux+=1;
-        this.chargeReseauxStore+=1;
+
         if(isMyOwn(hubId))
         {
             return this.take(filename);
         }
+        this.chargeReseaux+=1;
+        this.chargeReseauxStore+=1;
        // System.out.println("Node "+this.getId()+" keyspaceid : "+keySpaceId+" "+hubId+" via ");
         //System.out.println(this.routingTableWithKeySpace.get(hubId).getId());
         return this.routingTableWithKeySpace.get(hubId).storeTo(filename,hubId);
@@ -146,12 +147,13 @@ public class NodeChord extends AbstractCompo{
     }
     public boolean writeTo(String filename,String contenu,int hubId)
     {
-        this.chargeReseaux+=1;
-        this.chargeReseauxWrite+=1;
+
         if(isMyOwn(hubId))
         {
             return this.writeIn(filename,contenu);
         }
+        this.chargeReseaux+=1;
+        this.chargeReseauxWrite+=1;
       //  System.out.println("Node "+this.getId()+" keyspaceid : "+keySpaceId+" "+hubId+" via ");
         //System.out.println(this.routingTableWithKeySpace.get(hubId).getId());
         return this.routingTableWithKeySpace.get(hubId).writeTo(filename,contenu,hubId);
@@ -185,13 +187,14 @@ public class NodeChord extends AbstractCompo{
     }
     public boolean readTo(String filename,int hubId)
     {
-        this.chargeReseaux+=1;
-        this.chargeReseauxRead+=1;
+
 
         if(isMyOwn(hubId))
         {
             return this.give(filename);
         }
+        this.chargeReseaux+=1;
+        this.chargeReseauxRead+=1;
         //System.out.println("Node "+this.getId()+" keyspaceid : "+keySpaceId+" "+hubId+" via ");
      //   System.out.println(this.routingTableWithKeySpace.get(hubId).getId());
         return this.routingTableWithKeySpace.get(hubId).readTo(filename,hubId);

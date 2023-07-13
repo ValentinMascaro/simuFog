@@ -97,14 +97,33 @@ public class Hub extends AbstractCompo {
                 .createCache("simpleCache"+this.getId(), config);
         //cache.close();
     }
+    public void closeCache()
+    {
+        this.cache.close();
+    }
     public boolean write(String filename,String newContenu,int replique)
     {
         this.chargeReseauxWrite+=1;
+        List<Integer> presence = new ArrayList<>();
+        List<Integer> pref = pref(filename,topologyMoyenneGlobal);
         //System.out.println("/!\\Hub "+this.getId()+" rewriting "+filename+" by "+newContenu);
         int r=0;
+        if(cache.containsKey(filename))
+        {
+            pref.removeAll(cache.get(filename));
+            List<Integer> leCache=cache.get(filename);
+            int i =0;
+            while(i<leCache.size() && r<replique)
+            {
+                if(writeTo(filename,newContenu,leCache.get(i)))
+                {
+                    r++;
+                    presence.add(leCache.get(i));
+                }
+                i++;
+            }
+        }
         int i=0;
-        List<Integer> pref = pref(filename,topologyMoyenneGlobal);
-        // System.out.println(pref);
         while(r<replique)
         {
             if(i>=pref.size())
@@ -117,15 +136,21 @@ public class Hub extends AbstractCompo {
             if(writeTo(filename,newContenu,pref.get(i)))
             {
                 r++;
+                presence.add(pref.get(i));
                 // TODO get the replica and check it's good version
             }
             i++;
         }
+        if(cache.containsKey(filename))
+        {
+            cache.remove(filename);
+        }
+        cache.put(filename,presence);
         return true;
     }
 
     public boolean writeTo(String filename, String newContenu, int h) {
-        this.chargeReseauxWrite+=1;
+
         if(fichierNode.containsKey(filename))
         {
             return this.writeInNode(filename,newContenu);
@@ -134,9 +159,26 @@ public class Hub extends AbstractCompo {
         {
             return false;
         }
+        this.chargeReseauxWrite+=1;
   //      System.out.println("Hubs "+this.getId()+" need to "+h);
     //    System.out.println("Hub "+this.getId()+" go by "+routingTable.get(h).getId());
-        return this.routingTable.get(h).writeTo(filename,newContenu,h);
+      //  return this.routingTable.get(h).writeTo(filename,newContenu,h);
+        if(this.routingTable.get(h).writeTo(filename,newContenu,h)) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
+        {
+            //if(this.routingTable.get(h).getId()==h){
+                if(this.cache.containsKey(filename))
+                {
+                    this.cache.get(filename).add(h);
+                }
+                else
+                {
+                    this.cache.put(filename,new ArrayList<>(h));
+                }
+                return true;
+            //}
+        //    return true;
+        }
+        return false;
     }
 
     private boolean writeInNode(String filename, String newContenu) {
@@ -159,13 +201,30 @@ public class Hub extends AbstractCompo {
     }
     public boolean readTo(String filename, int hubId)
     {
-        chargeReseauxRead+=1;
+
         if(this.getId()==hubId)
         {
             return give(filename);
         }
+        chargeReseauxRead+=1; //1724 4556
         //System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
-       return this.routingTable.get(hubId).readTo(filename,hubId);
+        //return this.routingTable.get(hubId).readTo(filename,hubId);
+       if(this.routingTable.get(hubId).readTo(filename,hubId)) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
+       {
+        //   if(this.routingTable.get(hubId).getId()==hubId){
+               if(this.cache.containsKey(filename))
+               {
+                   this.cache.get(filename).add(hubId);
+               }
+               else
+               {
+                   this.cache.put(filename,new ArrayList<>(hubId));
+               }
+               return true;
+          // }
+           //return true;
+       }
+       return false;
     }
     public boolean give(String filename)
     {
@@ -186,7 +245,7 @@ public class Hub extends AbstractCompo {
         {
             List<Integer> leCache = cache.get(filename);
             int i=0;
-            while(i<leCache.size())
+            while(i<leCache.size() && r<replique)
             {
                 if(readTo(filename,leCache.get(i)))
                 {
@@ -268,7 +327,8 @@ public class Hub extends AbstractCompo {
                // System.out.println("increase2 size"+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(AbstractCompo h : voisins)
                 {
-                    h.increaseTo(this.nbrFichierMax*2,alreadywarned);
+                    //h.increaseTo((int)Math.floor(0.5+this.nbrFichierMax*0.1),alreadywarned);
+                    h.increaseTo(this.getNbrFichierMax()*2,alreadywarned);
                 }
                 this.nbrFichierMax*=2;
                 i=0;
@@ -308,13 +368,30 @@ public class Hub extends AbstractCompo {
     }
     public boolean storeTo(String filename,int hubId,int poids)
     {
-        chargeReseauxStore+=1;
+
         if(hubId==this.getId())
         {
             return this.take(filename,poids);
         }
+        chargeReseauxStore+=1;
         // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
-        return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
+        //return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
+        if(this.routingTable.get(hubId).storeTo(filename,hubId,poids)) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
+        {
+            //if(this.routingTable.get(hubId).getId()==hubId){
+                if(this.cache.containsKey(filename))
+                {
+                    this.cache.get(filename).add(hubId);
+                }
+                else
+                {
+                    this.cache.put(filename,new ArrayList<>(hubId));
+                }
+                return true;
+            //}
+            //return true;
+        }
+        return false;
     }
    public boolean reStoreTo(String filename, int hubId) {
         chargeReseauxReStore+=1;
@@ -349,14 +426,15 @@ public class Hub extends AbstractCompo {
               //  System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
                 for(AbstractCompo h : voisins)
                 {
-                    h.increaseTo(this.nbrFichierMax*2,alreadywarned);
+                    //h.increaseTo((int)Math.floor(0.5+this.nbrFichierMax*0.1),alreadywarned);
+                    h.increaseTo(this.getNbrFichierMax()*2,alreadywarned);
                 }
                 this.nbrFichierMax++;
                 i=0;
             }
           //  if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
-            if(this.storeTo(filename,pref.get(i),1))
+            if(this.storeTo(filename,pref.get(i),100))
             {
                 r++;
                 if(!this.fichiersHub.containsKey(filename))

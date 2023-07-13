@@ -12,7 +12,8 @@ public class simulationDemande {
         this.nombreDemandeParHubI=new ArrayList<>();
         for(int i=0;i<H;i++)
         {
-            this.nombreDemandeParHubI.add((int)Math.floor(rand.nextExponential()*(S/(F*H))));
+            Double tmpPoidsHub = rand.nextExponential();
+            this.nombreDemandeParHubI.add((int)Math.floor(tmpPoidsHub*rand.nextExponential()*(S/(F*H))));
         } // nombreDemandeParHubI[i] = le nombre de fois que hubI demande le fichier id
 
     }

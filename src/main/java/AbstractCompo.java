@@ -1,6 +1,19 @@
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.spi.CachingProvider;
 import java.util.List;
 
 public class AbstractCompo implements Components{
+    CachingProvider cachingProvider;
+    CacheManager cacheManager;
+    MutableConfiguration<String, List<Integer>> config;
+    Cache<String, List<Integer>> cache;
+
+    public void closeCache()
+    {
+        this.cache.close();
+    }
     public int getId() {
         return id;
     }
