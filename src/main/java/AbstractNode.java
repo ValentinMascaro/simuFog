@@ -32,6 +32,11 @@ public class AbstractNode implements Nodes{
     protected List<Double> topologyMoyenneGlobal;
     protected List<Integer> topoLocal;
 
+    protected String getFichierDemande()
+    {
+        System.out.println("ab getFichierDemande");
+        return "ab";
+    }
     protected int calculateHashInt(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
@@ -45,7 +50,7 @@ public class AbstractNode implements Nodes{
 
         return 0;
     }
-    public List<Integer> djikstra(List<List<Integer>> graph, int source,int size) {
+    protected List<Integer> djikstra(List<List<Integer>> graph, int source,int size) {
         List<Integer> listDistance = new ArrayList<>();
         List<Integer> prev = new ArrayList<>();
         //List<Integer> q = new ArrayList<>();
@@ -100,12 +105,7 @@ public class AbstractNode implements Nodes{
                 }
             }
         }
-        List<List<Integer>> tmpTopo = getIndexLists(listDistance).stream().filter(f->!f.isEmpty()).toList();
-        for(List<Integer> tmptmpTopo : tmpTopo)
-        {
-            this.topoLocal.addAll(tmptmpTopo);
-        }
-        this.djkistra=listDistance;
+
         return listDistance;
     }
     protected static int minDistanceToU(List<Integer> distances,List<Boolean> visited) {
@@ -153,6 +153,12 @@ public class AbstractNode implements Nodes{
             }
             moy.add((double) sum / listeAdjacence.size());
         }
+        this.topoLocal=new ArrayList<>();
+        List<List<Integer>> tmpTopo = getIndexLists(distance.get(this.getId())).stream().filter(f->!f.isEmpty()).toList();
+        for(List<Integer> l : tmpTopo)
+        {
+            topoLocal.addAll(l);
+        }
         this.topologyMoyenneGlobal=moy;
         //return moy;
     }
@@ -192,11 +198,14 @@ public class AbstractNode implements Nodes{
     }
     @Override
     public Message read(String filename, int replique) {
+        System.out.println("ab");
         return null;
     }
-    public Message readTo(Message msg){return null;}
+    public Message readTo(Message msg){
+        System.out.println("ab");return null;}
     public Message give(String filename)
     {
+        System.out.println("ab");
         return null;
     }
     @Override

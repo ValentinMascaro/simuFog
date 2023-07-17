@@ -35,4 +35,5 @@ public class Message {
         this.nomFichier = nomFichier;
 
     }
+
 }
