@@ -10,8 +10,7 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String[] args) {
 
-        int nbrTest=10;
-
+        int nbrTest=1;
         int seed = 3;
         double ASFread=0;
         double ASFstore=0;
@@ -47,9 +46,11 @@ public class Main {
             int S = 300000;
             int C = 3;
             int R = 4;
+            int limitCache=100000;
             List<AbstractNode> Hubs = new ArrayList<>();
+            Time time=new Time();
             for (int i = 0; i < 16; i++) {
-                Hubs.add(new Hub(i, 2));
+                Hubs.add(new Hub(i, 2,time,limitCache));
             }
            for (int i = 0; i < topology.size(); i++) {
                 Hubs.get(i).setVoisins(topology.get(i).stream().map(f -> Hubs.get(f)).toList());

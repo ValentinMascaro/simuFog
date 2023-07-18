@@ -1,7 +1,3 @@
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -22,10 +18,11 @@ public class AbstractNode implements Nodes{
     protected int nbrFichierMax; // max de nombre de fichier stockable
     protected HashMap<Integer,AbstractNode> routingTable; // pour aller à la node x qui n'est pas voisine on va à la node prev[x]
 
-    CachingProvider cachingProvider;
+    /*CachingProvider cachingProvider;
     CacheManager cacheManager;
     MutableConfiguration<String, List<Integer>> config;
-    Cache<String, List<Integer>> cache;
+    Cache<String, List<Integer>> cache;*/
+    protected cache cache;
     protected List<Double> topologyMoyenneGlobal;
     protected List<Integer> topoLocal;
 

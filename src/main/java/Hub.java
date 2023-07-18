@@ -1,11 +1,9 @@
-import javax.cache.Caching;
-import javax.cache.configuration.MutableConfiguration;
 import java.util.*;
 
 public class Hub extends AbstractNode {
     private HashMap<String,fichierDemande> fichierDemande; // Liste de <String filename, nbr de demande> s'actualise à chaque appel de read (TODO)
     private HashMap<String,fichierDemande> fichiersHub; //
-    public Hub(int id,int nbrFichierMax)
+    public Hub(int id,int nbrFichierMax, Time time,Integer limit)
     {
         this.chargeReseauxRead=0;
         this.chargeReseauxIncrease=0;
@@ -18,12 +16,14 @@ public class Hub extends AbstractNode {
         this.nbrFichierMax=nbrFichierMax;
         this.nbrFichier=0;
         this.fichiersHub =new HashMap<>();
-        this.cachingProvider = Caching.getCachingProvider();
+        this.cache=new cache(limit,time);
+     /*   this.cachingProvider = Caching.getCachingProvider();
         this.cacheManager = cachingProvider.getCacheManager();
         this.config
                 = new MutableConfiguration<>();
         cache = cacheManager
-                .createCache("simpleCache"+this.getId(), config);
+                .createCache("simpleCache"+this.getId(), config);*/
+
         //cache.close();
     }
     private void addFichierDemande(String filename)
@@ -243,7 +243,7 @@ public class Hub extends AbstractNode {
         if(cache.containsKey(filename))
         {
             pref.removeAll(cache.get(filename));
-            List<Integer> leCache=cache.get(filename);
+            List<Integer> leCache= cache.get(filename);
             int i =0;
             while(i<leCache.size() && r<replique)
             {
