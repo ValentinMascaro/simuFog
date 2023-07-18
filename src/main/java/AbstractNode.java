@@ -6,10 +6,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AbstractNode implements Nodes{
 
@@ -210,11 +207,75 @@ public class AbstractNode implements Nodes{
     }
     @Override
     public Message store(Message msg, int replique) {
-        return null;
+        chargeReseauxStore+=1;
+        String filename=msg.nomFichier;
+        List<Integer> pref = pref(msg.nomFichier,this.topologyMoyenneGlobal);
+        int r=0;
+        int i=0;
+        List<Integer> presence =new ArrayList<>();
+        while(r<replique)
+        {
+            if(i>=pref.size())
+            {
+                // System.out.println("Max capacity limit need to be increase ");
+                List<AbstractNode> alreadywarned=new ArrayList<>(voisins);
+                alreadywarned.add(this);
+                //  System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
+                for(AbstractNode h : voisins)
+                {
+                    //h.increaseTo((int)Math.floor(0.5+this.nbrFichierMax*0.1),alreadywarned);
+                    h.increaseTo(this.getNbrFichierMax()*2,alreadywarned);
+                }
+                this.nbrFichierMax++;
+                i=0;
+            }
+            //  if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
+            //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
+            if(this.storeTo(new Message(1,msg.nomFichier,msg.contenuFichier,pref.get(i),1)).msgType==1)
+            {
+                r++;
+                presence.add(pref.get(i));
+                // TODO cache
+                //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " in "+pref.get(i));
+            }
+            i++;
+
+        }
+        this.cache.put(filename,presence);
+        //  System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
+        return new Message(1,msg.nomFichier, msg.contenuFichier, -1,-1); // on répond juste true en gros
+    }
+
+    public Message storeTo(Message msg) {
+        int hubId=msg.destinataire;
+        String filename=msg.nomFichier;
+        if(hubId==this.getId())
+        {
+            return this.take(msg);
+        }
+        chargeReseauxStore+=1;
+        // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        //return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
+        if(this.routingTable.get(hubId).storeTo(msg).msgType==1) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
+        {
+            //if(this.routingTable.get(hubId).getId()==hubId){
+            if(this.cache.containsKey(filename))
+            {
+                this.cache.get(filename).add(hubId);
+            }
+            else
+            {
+                this.cache.put(filename,new ArrayList<>(hubId));
+            }
+            return new Message(1,null,null,-1,-1);
+            //}
+            //return true;
+        }
+        return new Message(0);
     }
     public Message reStoreTo(Message msg) {
         System.out.println("restoreToAb");return null;}
-    public Message storeTo(Message msg){System.out.println("storeToAb");return null;}
+
     public Message take(Message msg){
         System.out.println("takeAb");return null;}
     @Override
@@ -251,5 +312,23 @@ public class AbstractNode implements Nodes{
 
     public void setVoisins(List<AbstractNode> voisins) {
         this.voisins = voisins;
+    }
+    protected List<Integer> pref(String filename, List<Double> hubTopologyMoyenne)
+    {
+        java.lang.Integer hash = calculateHashInt(filename);
+        List<java.lang.Integer> integerList = hubTopologyMoyenne.stream()
+                .mapToInt(Double::intValue)
+                // .sorted()
+                .boxed()
+                .toList();
+        List<List<java.lang.Integer>> listeIndexRepet = getIndexLists(integerList).stream().filter(f -> !f.isEmpty()).toList();
+        List<java.lang.Integer> pref = new ArrayList<>();
+        for(int i =0;i<listeIndexRepet.size();i++)
+        {
+            Random rand = new Random(hash*i);
+            Collections.shuffle(listeIndexRepet.get(i),rand);
+            pref.addAll(listeIndexRepet.get(i));
+        }
+        return pref;
     }
 }

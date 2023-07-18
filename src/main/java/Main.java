@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String[] args) {
 
-        int nbrTest=1;
+        int nbrTest=10;
 
         int seed = 3;
         double ASFread=0;
@@ -43,9 +43,9 @@ public class Main {
                 List.of(14) // hub 15
         ));
         for(int test=0;test<nbrTest;test++) {
-            int F = 10;
+            int F = 50;
             int S = 300000;
-            int C = 4;
+            int C = 3;
             int R = 4;
             List<AbstractNode> Hubs = new ArrayList<>();
             for (int i = 0; i < 16; i++) {
