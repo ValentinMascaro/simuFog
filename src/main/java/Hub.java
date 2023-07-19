@@ -53,7 +53,7 @@ public class Hub extends AbstractNode {
             int i=0;
             while(i<leCache.size() && r<replique)
             {
-                Message retour = readTo(new Message(1,filename,null,leCache.get(i),-1));
+                Message retour = readTo(new Message(1,this.getId(),filename,leCache.get(i),this.getDemande(filename),0));
                 if(retour.msgType==1)
                 {
                     listeRetour.add(retour);
@@ -74,16 +74,16 @@ public class Hub extends AbstractNode {
             if(i>=pref.size())
             {
                 // TODO same as store
-
+                System.out.println("Can't find replica");
                 return new Message(0,null,null,-1,-1);
             }
             //if(pref.get(i)==this.getId()){chargeReseaux-=1;}
             //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to give "+filename);
-            Message tmpRetour =readTo(new Message(1,filename,null,pref.get(i),-1,0));
+            Message retour = readTo(new Message(1,this.getId(),filename,pref.get(i),this.getDemande(filename),0));
 
-            if (tmpRetour.msgType==1)
+            if (retour.msgType==1)
             {
-                listeRetour.add(tmpRetour);
+                listeRetour.add(retour);
                 //  System.out.println("Hub "+this.getId()+" Succesfuly found a replica ");
                 presence.add(pref.get(i));
                 r++;
@@ -93,56 +93,112 @@ public class Hub extends AbstractNode {
         }
 
         if(fichierDemande.containsKey(filename)) {
-
             if (pireFichierDemande()!=null && (pireFichierDemande().getDemande() < fichierDemande.get(filename).getDemande())) {
-                List<Integer> tmp = listeRetour.stream().map(f->f.distance).toList();
-                List<Message> sortedMsg=listeRetour.stream().sorted(Comparator.comparingInt(a -> a.distance)).toList();
-                //System.out.println("Hub : "+this.getId()+" "+listeRetour.stream().map(f->f.destinataire).toList());
-                //System.out.println("Hub : "+this.getId()+" "+presence);
-                int max=sortedMsg.get(0).destinataire;
-                    int d=0;
-                    int r2=0;
-                    while(presence.contains(topoLocal.get(d)))
+                    List<Integer> newPref = newPref(listeRetour.stream().map(f->f.hubIDemande).toList());
+                    List<Integer> oldPresence = listeRetour.stream().map(f->f.destinataire).toList();
+                    List<Integer> actualIndex = getActualIndex(newPref,oldPresence);
+                    int indiceMax= getMaxIndex(actualIndex);
+                    if(newPref.indexOf(this.getId())<actualIndex.get(indiceMax))
                     {
-                        d++;
-                        r2++;
-                    }
-                    if(r2<replique)
-                    {
-                       // System.out.println("Hubs : "+this.getId()+"d : "+d+" topo : "+topoLocal+" destinaitre : "+max+"  "+presence);
-                        if(removeTo(new Message(1,filename,null,max,this.fichierDemande.get(filename).getDemande())).msgType==1) {
-                            //System.out.println("Hub "+this.getId()+" ajout fichier "+filename+" hub "+topoLocal.get(d));
-                            storeTo(new Message(2, filename, listeRetour.get(0).contenuFichier, topoLocal.get(d), this.fichierDemande.get(filename).getDemande()));
-                            presence.remove(Integer.valueOf(max));
-                            presence.add(topoLocal.get(d));
+                        if(this.removeTo(new Message(1,filename,oldPresence.get(indiceMax),this.fichierDemande.get(filename).getDemande())).msgType==1) {
+                            this.take(new Message(2, filename));
+                            presence.remove(Integer.valueOf(oldPresence.get(indiceMax)));
+                            presence.add(this.getId());
                         }
-
                     }
                 }
             }
-
         if(cache.containsKey(filename))
         {
             cache.remove(filename);
         }
         cache.put(filename,presence);
         // System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
-        return new Message(1,null,null,-1,-1);
+        return new Message(1,null,null,-1,-1); // oué on devrai retourner le contenu mais flemme, j'ai mal gerer les msg et il est perdu en chemin  ¯\_(ツ)_/¯
     }
+    public  int getMaxIndex(List<Integer> integerList) {
+        int maxIndex = 0;
+        int maxValue = Integer.MIN_VALUE;
 
+        for (int i = 0; i < integerList.size(); i++) {
+            int currentValue = integerList.get(i);
+            if (currentValue > maxValue) {
+                maxValue = currentValue;
+                maxIndex = i;
+            }
+        }
+
+        return maxIndex;
+    }
+    public List<Integer> getActualIndex(List<Integer> newPref, List<Integer> oldPresence) {
+        List<Integer> actualIndex = new ArrayList<>();
+
+        for (int element : oldPresence) {
+            int index = newPref.indexOf(element);
+            actualIndex.add(index);
+        }
+
+        return actualIndex;
+    }
+    private List<Integer> newPref(List<HashMap<Integer, Integer>> hubIdemande) {
+        List<Double> newTopo = new ArrayList<>(this.topologyMoyenneGlobal);
+        HashMap<Integer,Integer> hubIDemandeActual = new HashMap<>();
+        for(HashMap<Integer,Integer> old : hubIdemande)
+        {
+
+            for (Integer key : old.keySet()) {
+                int demande = old.get(key);
+
+                if(hubIDemandeActual.containsKey(key))
+                {
+                    if(hubIDemandeActual.get(key)<demande)
+                    {
+                        hubIDemandeActual.put(key,demande);
+                    }
+                }else
+                {
+                    hubIDemandeActual.put(key,demande);
+                }
+            }
+        }
+        for(int i=0;i<topologyMoyenneGlobal.size();i++)
+        {
+            if(hubIDemandeActual.containsKey(i))
+            {
+                newTopo.add(this.topologyMoyenneGlobal.get(i)*hubIDemandeActual.get(i));
+            }
+            else {
+                newTopo.add(this.topologyMoyenneGlobal.get(i));
+            }
+        }
+        return getAsIndexList(newTopo);
+    }
+    private List<Integer> getAsIndexList(List<Double> doubleList) {
+        List<Integer> indexList = new ArrayList<>();
+
+        // Créer une liste d'indices de 0 à size - 1
+        for (int i = 0; i < doubleList.size(); i++) {
+            indexList.add(i);
+        }
+        // Trier la liste d'indices en utilisant les valeurs correspondantes de la liste de doubles
+        Collections.sort(indexList, Comparator.comparing(doubleList::get));
+
+        return indexList;
+    }
     @Override
     public Message readTo(Message msg) {
         int hubId= msg.destinataire;
         String filename= msg.nomFichier;
         if(this.getId()==hubId)
         {
-            return give(filename);
+            return give(msg);
         }
         msg.distance+=1;
         chargeReseauxRead+=1; //1724 4556
         //System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
         //return this.routingTable.get(hubId).readTo(filename,hubId);
-        if(this.routingTable.get(hubId).readTo(msg).msgType==1) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
+        Message retMsg = this.routingTable.get(hubId).readTo(msg);
+        if(retMsg.msgType==1) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
         {
             //   if(this.routingTable.get(hubId).getId()==hubId){
             if(this.cache.containsKey(filename))
@@ -153,7 +209,7 @@ public class Hub extends AbstractNode {
             {
                 this.cache.put(filename,new ArrayList<>(hubId));
             }
-            return msg;
+            return retMsg;
             // }
             //return true;
         }
@@ -161,13 +217,14 @@ public class Hub extends AbstractNode {
     }
 
     @Override
-    public Message give(String filename) {
-        if(fichiersHub.containsKey(filename))
-        {
+    public Message give(Message msg) {
+        String filename = msg.nomFichier;
+        if(fichiersHub.containsKey(filename)) {
+            this.fichiersHub.get(filename).addHubIdemande(msg.source);
             //  System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getNode().getId());
-            return new Message(1,filename,fichiersHub.get(filename).contenu,this.getId(),-1);
+            return new Message(1, this.getId(), filename, msg.source, msg.distance, fichiersHub.get(filename).getHubIDemande());
         }
-        return new Message(0);
+            return new Message(0);
     }
 
     @Override
@@ -223,13 +280,6 @@ public class Hub extends AbstractNode {
         }
         return new Message(0);
     }
-    @Override
-    public Message reStoreTo(Message msg) {
-        return super.reStoreTo(msg);
-    }
-
-
-
 
 
     @Override
@@ -369,5 +419,12 @@ public class Hub extends AbstractNode {
 
         return stringBuilder.toString();
     }
-
+    public int getDemande(String filename)
+    {
+        if(this.fichierDemande.containsKey(filename))
+        {
+            return this.fichierDemande.get(filename).getDemande();
+        }
+        return 0;
+    }
 }

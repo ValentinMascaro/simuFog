@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class fichierDemande {
@@ -9,17 +10,20 @@ public class fichierDemande {
 
     private int poids;
     private boolean lock;
+    private HashMap<Integer,Integer> hubIDemande;
 
     public fichierDemande(int demande, String nom) {
         this.demande = demande;
         this.nom = nom;
         this.lock=true;
+        this.hubIDemande=new HashMap<>();
     }
     public fichierDemande(int demande, String nom,String contenu) {
         this.demande = demande;
         this.nom = nom;
         this.contenu=contenu;
         this.lock=true;
+        this.hubIDemande=new HashMap<>();
     }
     public void lock(boolean isLibre)
     {
@@ -69,5 +73,20 @@ public class fichierDemande {
     public String getNom() {
         return nom;
     }
-
+    public void setHubIDemande(int hubI,int demande)
+    {
+        this.hubIDemande.put(hubI,demande);
+    }
+    public void addHubIdemande(int hubI)
+    {
+        int tmp = 1;
+        if(this.hubIDemande.containsKey(hubI))
+        {
+            tmp= this.hubIDemande.get(hubI)+1;
+        }
+        this.setHubIDemande(hubI,tmp);
+    }
+    public HashMap<Integer, Integer> getHubIDemande() {
+        return hubIDemande;
+    }
 }

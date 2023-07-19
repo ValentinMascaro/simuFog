@@ -11,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
 
         int nbrTest=1;
-        int seed = 3;
+        int seed = 200;
         double ASFread=0;
         double ASFstore=0;
         double ASFreStore=0;
@@ -72,7 +72,8 @@ public class Main {
             //System.out.println(Hubs.get(0).);
 
             simuExpoNew(Hubs, F, S, seed, C, R);
-            simuExpo(nodeChords, F, S, seed, C, R);
+            Hubs.get(3).read("fichier0",4);
+            //simuExpo(nodeChords, F, S, seed, C, R);
 
             List<Integer> ASFINcrease = Hubs.stream().map(f->f.getChargeReseauxIncrease()).collect(Collectors.toList());
             List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
@@ -98,8 +99,10 @@ public class Main {
             Chordwrited+=chordWrite.stream().mapToInt(Integer::intValue).sum();
             seed++;
 
-            System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
-
+           System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
+            System.out.println(Hubs.get(0).getDjkstraHubI());
+            System.out.println("--");
+            System.out.println(Hubs.get(10).getDjkstraHubI());
             for(AbstractNode hubAclose : Hubs)
             {
                 hubAclose.closeCache();

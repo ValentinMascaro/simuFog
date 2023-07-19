@@ -25,6 +25,7 @@ public class AbstractNode implements Nodes{
     protected cache cache;
     protected List<Double> topologyMoyenneGlobal;
     protected List<Integer> topoLocal;
+    protected List<List<Integer>> djkstraHubI;
 
     protected String getFichierDemande()
     {
@@ -138,6 +139,7 @@ public class AbstractNode implements Nodes{
         {
             distance.add(djikstra(listeAdjacence,i,size));
         }
+        this.djkstraHubI=distance;
         List<Double> moy = new ArrayList<>();
         for(int i =0;i<size;i++)
         {
@@ -162,7 +164,7 @@ public class AbstractNode implements Nodes{
     }
     public void closeCache()
     {
-        this.cache.close();
+        this.cache=null;
     }
     public int getId() {
         return id;
@@ -197,7 +199,7 @@ public class AbstractNode implements Nodes{
     }
     public Message readTo(Message msg){
         System.out.println("ab");return null;}
-    public Message give(String filename)
+    public Message give(Message msg)
     {
         System.out.println("ab");
         return null;
@@ -327,5 +329,9 @@ public class AbstractNode implements Nodes{
             pref.addAll(listeIndexRepet.get(i));
         }
         return pref;
+    }
+
+    public List<List<Integer>> getDjkstraHubI() {
+        return djkstraHubI;
     }
 }
