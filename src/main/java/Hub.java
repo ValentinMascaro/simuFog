@@ -93,21 +93,26 @@ public class Hub extends AbstractNode {
         }
 
         if(fichierDemande.containsKey(filename)) {
-            if (pireFichierDemande()!=null && (pireFichierDemande().getDemande() < fichierDemande.get(filename).getDemande())) {
-                    List<Integer> newPref = newPref(listeRetour.stream().map(f->f.hubIDemande).toList());
-                    List<Integer> oldPresence = listeRetour.stream().map(f->f.destinataire).toList();
+            if (true){//(nbrFichier<nbrFichierMax||pireFichierDemande()==null || (pireFichierDemande().getDemande() < fichierDemande.get(filename).getDemande())) {
+                List<Integer> newPref;
+                         newPref = newPref(listeRetour.stream().map(f->f.hubIDemande).toList());
+
+
+                    List<Integer> oldPresence = presence;
+
                     List<Integer> actualIndex = getActualIndex(newPref,oldPresence);
+                System.out.println("newpref "+newPref);
                     int indiceMax= getMaxIndex(actualIndex);
                     if(newPref.indexOf(this.getId())<actualIndex.get(indiceMax))
                     {
-                        if(this.removeTo(new Message(1,filename,oldPresence.get(indiceMax),this.fichierDemande.get(filename).getDemande())).msgType==1) {
+                        if(this.removeTo(new Message(2,filename,oldPresence.get(indiceMax),this.fichierDemande.get(filename).getDemande())).msgType==1) {
                             this.take(new Message(2, filename));
                             presence.remove(Integer.valueOf(oldPresence.get(indiceMax)));
                             presence.add(this.getId());
                         }
                     }
                 }
-            }
+          }
         if(cache.containsKey(filename))
         {
             cache.remove(filename);
@@ -141,14 +146,13 @@ public class Hub extends AbstractNode {
         return actualIndex;
     }
     private List<Integer> newPref(List<HashMap<Integer, Integer>> hubIdemande) {
-        List<Double> newTopo = new ArrayList<>(this.topologyMoyenneGlobal);
+
+      ///  System.out.println("-------------");
         HashMap<Integer,Integer> hubIDemandeActual = new HashMap<>();
         for(HashMap<Integer,Integer> old : hubIdemande)
         {
-
             for (Integer key : old.keySet()) {
                 int demande = old.get(key);
-
                 if(hubIDemandeActual.containsKey(key))
                 {
                     if(hubIDemandeActual.get(key)<demande)
@@ -161,16 +165,27 @@ public class Hub extends AbstractNode {
                 }
             }
         }
+
+        List<Double> newTopo=new ArrayList<>();
         for(int i=0;i<topologyMoyenneGlobal.size();i++)
         {
-            if(hubIDemandeActual.containsKey(i))
-            {
-                newTopo.add(this.topologyMoyenneGlobal.get(i)*hubIDemandeActual.get(i));
-            }
-            else {
-                newTopo.add(this.topologyMoyenneGlobal.get(i));
-            }
+            int sum=0;
+            //for(int j = 0 ; j < topologyMoyenneGlobal.size();j++)
+            //{
+            //System.out.println("--");
+                for(Integer key : hubIDemandeActual.keySet())
+                {
+                    int demande = hubIDemandeActual.get(key);
+            //        System.out.println("Hub "+key+" demande : "+demande);
+              //      System.out.println(djkstraHubI.get(i).get(key)+" * "+demande);
+                    sum+=demande*djkstraHubI.get(i).get(key);
+                }
+          //  System.out.println(i+" "+sum);
+                newTopo.add((double)sum);
+            //}
         }
+        //System.out.println("newtopo "+newTopo);
+        //System.out.println(djkstraHubI);
         return getAsIndexList(newTopo);
     }
     private List<Integer> getAsIndexList(List<Double> doubleList) {
@@ -232,7 +247,7 @@ public class Hub extends AbstractNode {
         int destinaire = msg.destinataire;
         if(destinaire==this.getId())
         {
-            if(this.fichiersHub.get(msg.nomFichier).getDemande()<msg.poidsFichier)
+            if(msg.msgType==2 || this.fichiersHub.get(msg.nomFichier).getDemande()<msg.poidsFichier)
             {
                 this.fichierDemande.put(msg.nomFichier,this.fichiersHub.get(msg.nomFichier));
                 this.fichiersHub.remove(msg.nomFichier);

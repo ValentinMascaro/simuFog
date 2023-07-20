@@ -3,6 +3,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class AbstractNode implements Nodes{
 
@@ -219,13 +220,15 @@ public class AbstractNode implements Nodes{
                 // System.out.println("Max capacity limit need to be increase ");
                 List<AbstractNode> alreadywarned=new ArrayList<>(voisins);
                 alreadywarned.add(this);
+
                 //  System.out.println("increase size"+i+" "+this.nbrFichier+" / "+this.nbrFichierMax);
+                int increase = this.getNbrFichierMax()*2;
                 for(AbstractNode h : voisins)
                 {
                     //h.increaseTo((int)Math.floor(0.5+this.nbrFichierMax*0.1),alreadywarned);
-                    h.increaseTo(this.getNbrFichierMax()*2,alreadywarned);
+                    h.increaseTo(increase,alreadywarned);
                 }
-                this.nbrFichierMax++;
+                this.nbrFichierMax=increase;
                 i=0;
             }
             //  if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
@@ -287,17 +290,20 @@ public class AbstractNode implements Nodes{
     public void increaseTo(int increase,List<AbstractNode> hubAlreadyWarned) // broadcast and prune
     {
 
+
         chargeReseauxIncrease+=1;
         List<AbstractNode> notWarned = voisins.stream().filter(f-> !hubAlreadyWarned.contains(f)).toList();
         List<AbstractNode> concat = new ArrayList<>(notWarned);
         concat.addAll(hubAlreadyWarned);
-        concat.add(this);
+        //concat.add(this);
         int i =0;
+
         while(i<notWarned.size())
         {
             notWarned.get(i).increaseTo(increase,concat);
             i++;
         }
+
         this.nbrFichierMax=increase;
     }
     public Message removeTo(Message msg)
