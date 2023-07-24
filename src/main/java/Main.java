@@ -79,18 +79,32 @@ public class Main {
             //System.out.println(Hubs.get(0).);
            // simuExpoNew(Hubs, F, S, seed, C, R);
             //Hubs.get(0).store(new Message(1,"fichier0","fichier0"),1);
-            Hubs.get(0).take(new Message(2,"fichier0"));
+
+          //   Hubs.get(0).take(new Message(2,"fichier0"));
+
+           Hubs.get(0).take(new Message(2,"fichier0"));
             Hubs.get(3).take(new Message(2,"fichier0"));
-         for(int truc=0;truc<100;truc++)
-            {
-                Hubs.get(0).read("fichier0",2);
-            }
-            for(int truc=0;truc<100;truc++)
-            {
-                Hubs.get(3).read("fichier0",2);
+            Hub h3 = (Hub)Hubs.get(3);
+            Hub h0 = (Hub)Hubs.get(0);
+            Hub h2 = (Hub)Hubs.get(2);
+            Hub h1 = (Hub)Hubs.get(1);
+            h0.setFakeDemande("fichier0",100);
+            h1.setFakeDemande("fichier0",10);
+            h2.setFakeDemande("fichier0",10);
+            h3.setFakeDemande("fichier0",100);
 
-            }
+            h0.setFakeDemandeFromHubI("fichier0",10,1);
+            h0.setFakeDemandeFromHubI("fichier0",10,2);
 
+            h3.setFakeDemandeFromHubI("fichier0",100,0);
+            h3.setFakeDemandeFromHubI("fichier0",10,1);
+            h3.setFakeDemandeFromHubI("fichier0",10,2);
+
+         for(int truc=0;truc<1;truc++)
+            {
+                Hubs.get(1).read("fichier0",2);
+            }
+/*
             for(int truc=0;truc<10;truc++)
             {
                 Hubs.get(1).read("fichier0",1);
@@ -99,7 +113,7 @@ public class Main {
             for(int truc=0;truc<10;truc++)
             {
                 Hubs.get(2).read("fichier0",1);
-            }
+            }*/
             // simuExpo(nodeChords, F, S, seed, C, R);
 
             List<Integer> ASFINcrease = Hubs.stream().map(f->f.getChargeReseauxIncrease()).toList();

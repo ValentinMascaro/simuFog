@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Hub extends AbstractNode {
     private HashMap<String,fichierDemande> fichierDemande; // Liste de <String filename, nbr de demande> s'actualise à chaque appel de read (TODO)
@@ -94,23 +95,31 @@ public class Hub extends AbstractNode {
 
         if(fichierDemande.containsKey(filename)) {
             if (true){//(nbrFichier<nbrFichierMax||pireFichierDemande()==null || (pireFichierDemande().getDemande() < fichierDemande.get(filename).getDemande())) {
-                List<Integer> newPref;
-                         newPref = newPref(listeRetour.stream().map(f->f.hubIDemande).toList());
-
-
-                    List<Integer> oldPresence = presence;
-
-                    List<Integer> actualIndex = getActualIndex(newPref,oldPresence);
-                System.out.println("newpref "+newPref);
-                    int indiceMax= getMaxIndex(actualIndex);
-                    if(newPref.indexOf(this.getId())<actualIndex.get(indiceMax))
+                System.out.println("source "+presence);
+                System.out.println("liste distance "+listeRetour.stream().map(f->f.distance).collect(Collectors.toList()));
+                System.out.println("score replique en "+presence.get(0)+ " "+ newPref(listeRetour.get(0).hubIDemande) + " "+this.getAsIndexList(newPref(listeRetour.get(0).hubIDemande)));
+                System.out.println("score replique en "+presence.get(1)+ " "+ newPref(listeRetour.get(1).hubIDemande) + " "+this.getAsIndexList(newPref(listeRetour.get(1).hubIDemande)));
+                List<Pair<Integer,Pair<Integer,Integer>>> newPrefByReplique = new ArrayList<>(); // pair poids,distance
+                for(int re=0;re<presence.size();re++)
+                {
+                    List<Integer> newPoids= newPref(listeRetour.get(re).hubIDemande);
+                    List<Integer> newPref = getAsIndexList(newPoids);
+                    if(newPref.indexOf(this.getId())<newPref.indexOf(presence.get(re)))
                     {
-                        if(this.removeTo(new Message(2,filename,oldPresence.get(indiceMax),this.fichierDemande.get(filename).getDemande())).msgType==1) {
-                            this.take(new Message(2, filename));
-                            presence.remove(Integer.valueOf(oldPresence.get(indiceMax)));
-                            presence.add(this.getId());
-                        }
+                        newPrefByReplique.add(new Pair(presence.get(re),new Pair(newPoids.get(this.getId()),listeRetour.get(re).distance)));
                     }
+                }
+               newPrefByReplique=sortPairs(newPrefByReplique);
+                System.out.println(newPrefByReplique);
+                for(int re=0;re<newPrefByReplique.size();re++)
+                {
+                    if(removeTo(new Message(2,filename,newPrefByReplique.get(re).first(),this.fichierDemande.get(filename).getDemande())).msgType==1) {
+                        this.take(new Message(2,filename));
+                        presence.remove(Integer.valueOf(newPrefByReplique.get(re).first()));
+                        presence.add(this.getId());
+                        break;
+                    }
+                }
                 }
           }
         if(cache.containsKey(filename))
@@ -120,6 +129,24 @@ public class Hub extends AbstractNode {
         cache.put(filename,presence);
         // System.out.println("Hub "+this.getId()+" found "+filename+" at hubs : "+findWhere);
         return new Message(1,null,null,-1,-1); // oué on devrai retourner le contenu mais flemme, j'ai mal gerer les msg et il est perdu en chemin  ¯\_(ツ)_/¯
+    }
+    public List<Pair<Integer, Pair<Integer,Integer>>> sortPairs(List<Pair<Integer, Pair<Integer,Integer>>> pairList) {
+        Comparator<Pair<Integer, Pair<Integer,Integer>>> customComparator = (p1, p2) -> {
+            int distanceComparison = p1.second().second().compareTo(p2.second().second());
+            if (distanceComparison > 0) {
+                return -1;
+            }
+            if(distanceComparison<0)
+            {
+                return 1;
+            }else {
+                return p1.second().first().compareTo(p2.second().first());
+            }
+        };
+
+        Collections.sort(pairList, customComparator);
+
+        return pairList;
     }
     public  int getMaxIndex(List<Integer> integerList) {
         int maxIndex = 0;
@@ -145,28 +172,9 @@ public class Hub extends AbstractNode {
 
         return actualIndex;
     }
-    private List<Integer> newPref(List<HashMap<Integer, Integer>> hubIdemande) {
+    private List<Integer> newPref(HashMap<Integer, Integer> hubIDemandeActual) {
 
-      ///  System.out.println("-------------");
-        HashMap<Integer,Integer> hubIDemandeActual = new HashMap<>();
-        for(HashMap<Integer,Integer> old : hubIdemande)
-        {
-            for (Integer key : old.keySet()) {
-                int demande = old.get(key);
-                if(hubIDemandeActual.containsKey(key))
-                {
-                    if(hubIDemandeActual.get(key)<demande)
-                    {
-                        hubIDemandeActual.put(key,demande);
-                    }
-                }else
-                {
-                    hubIDemandeActual.put(key,demande);
-                }
-            }
-        }
-
-        List<Double> newTopo=new ArrayList<>();
+        List<Integer> newTopo=new ArrayList<>();
         for(int i=0;i<topologyMoyenneGlobal.size();i++)
         {
             int sum=0;
@@ -181,22 +189,24 @@ public class Hub extends AbstractNode {
                     sum+=demande*djkstraHubI.get(i).get(key);
                 }
           //  System.out.println(i+" "+sum);
-                newTopo.add((double)sum);
+                newTopo.add(sum);
             //}
         }
         //System.out.println("newtopo "+newTopo);
         //System.out.println(djkstraHubI);
-        return getAsIndexList(newTopo);
+       return newTopo;
+     //   return getAsIndexList(newTopo);;
     }
-    private List<Integer> getAsIndexList(List<Double> doubleList) {
+
+    private List<Integer> getAsIndexList(List<Integer> intList) {
         List<Integer> indexList = new ArrayList<>();
 
         // Créer une liste d'indices de 0 à size - 1
-        for (int i = 0; i < doubleList.size(); i++) {
+        for (int i = 0; i < intList.size(); i++) {
             indexList.add(i);
         }
         // Trier la liste d'indices en utilisant les valeurs correspondantes de la liste de doubles
-        Collections.sort(indexList, Comparator.comparing(doubleList::get));
+        Collections.sort(indexList, Comparator.comparingInt(intList::get));
 
         return indexList;
     }
@@ -441,5 +451,31 @@ public class Hub extends AbstractNode {
             return this.fichierDemande.get(filename).getDemande();
         }
         return 0;
+    }
+    public void setFakeDemandeFromHubI(String nomfichier, int demande, int hubI)
+    {
+     if(this.getId()==hubI)
+     {
+         this.fichiersHub.get(nomfichier).addHubIdemande(hubI,demande);
+         this.fichiersHub.get(nomfichier).addDemande(demande);
+     }
+     else{
+         this.fichiersHub.get(nomfichier).addHubIdemande(hubI,demande);
+     }
+    }
+    public void setFakeDemande(String nomFichier,int demande)
+    {
+        if(this.fichiersHub.containsKey(nomFichier))
+        {
+            this.fichiersHub.get(nomFichier).addHubIdemande(this.getId(),demande);
+            this.fichiersHub.get(nomFichier).addDemande(demande);
+            return;
+        }
+        if(this.fichierDemande.containsKey(nomFichier))
+        {
+            this.fichierDemande.get(nomFichier).setDemande(demande);
+        }else{
+            this.fichierDemande.put(nomFichier,new fichierDemande(demande,nomFichier));
+        }
     }
 }

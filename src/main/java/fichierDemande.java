@@ -65,6 +65,10 @@ public class fichierDemande {
     {
         this.demande++;
     }
+    public void addDemande(int demande)
+    {
+        this.demande+=demande;
+    }
 
     public int getDemande() {
         return demande;
@@ -77,12 +81,26 @@ public class fichierDemande {
     {
         this.hubIDemande.put(hubI,demande);
     }
+
+    public void setDemande(int demande) {
+        this.demande = demande;
+    }
+
     public void addHubIdemande(int hubI)
     {
         int tmp = 1;
         if(this.hubIDemande.containsKey(hubI))
         {
             tmp= this.hubIDemande.get(hubI)+1;
+        }
+        this.setHubIDemande(hubI,tmp);
+    }
+    public void addHubIdemande(int hubI,int demande)
+    {
+        int tmp = demande;
+        if(this.hubIDemande.containsKey(hubI))
+        {
+            tmp+= this.hubIDemande.get(hubI);
         }
         this.setHubIDemande(hubI,tmp);
     }

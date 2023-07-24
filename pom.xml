@@ -17,6 +17,13 @@
         <artifactId>cache-ri-impl</artifactId>
         <version>1.1.1</version>
     </dependency>
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>31.0.1-jre</version>
+    </dependency>
+
+
 </dependencies>
     <properties>
         <maven.compiler.source>20</maven.compiler.source>
