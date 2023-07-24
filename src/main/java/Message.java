@@ -39,25 +39,19 @@ public class Message {
         this.nomFichier = nomFichier;
 
     }
-    public Message(int msgType, String nomFichier,int destinataire) {
+    public Message(int msgType, String nomFichier, int destinataire, int source) {
         this.msgType = msgType;
         this.nomFichier = nomFichier;
-
-    }
-    public Message(int msgType, int source, String nomFichier, int destinataire, int poidsFichier, int distance) {
-        this.msgType = msgType;
+        this.destinataire = destinataire;
         this.source = source;
-        this.nomFichier = nomFichier;
-        this.destinataire = destinataire;
-        this.poidsFichier = poidsFichier;
-        this.distance = distance;
-    }
 
-    public Message(int msgType, String nomFichier, int destinataire, int poidsFichier) {
+    }
+    public Message(int msgType, String nomFichier, int destinataire, int source,int distance) {
         this.msgType = msgType;
         this.nomFichier = nomFichier;
         this.destinataire = destinataire;
-        this.poidsFichier = poidsFichier;
+        this.source = source;
+        this.distance=distance;
     }
 
     public Message(int msgType, int source, String nomFichier, int destinataire, int distance, HashMap<Integer, Integer> hubIDemande) {

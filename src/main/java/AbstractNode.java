@@ -3,7 +3,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class AbstractNode implements Nodes{
 
@@ -274,6 +273,10 @@ public class AbstractNode implements Nodes{
             //return true;
         }
         return new Message(0);
+    }
+    public boolean reStore(Message msg)
+    {
+        System.out.println("restoreAb");return false;
     }
     public Message reStoreTo(Message msg) {
         System.out.println("restoreToAb");return null;}

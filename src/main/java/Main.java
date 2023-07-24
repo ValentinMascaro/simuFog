@@ -53,11 +53,11 @@ public class Main {
             int S = 300000;
             int C = 1;
             int R = 2;
-            int limitCache=100000;
+            int limitCache=2;
             List<AbstractNode> Hubs = new ArrayList<>();
             Time time=new Time();
             for (int i = 0; i < topology.size(); i++) {
-                Hubs.add(new Hub(i, 2,time,limitCache));
+                Hubs.add(new Hub(i, 2,limitCache));
             }
            for (int i = 0; i < topology.size(); i++) {
                 Hubs.get(i).setVoisins(topology.get(i).stream().map(f -> Hubs.get(f)).toList());
@@ -84,6 +84,7 @@ public class Main {
 
            Hubs.get(0).take(new Message(2,"fichier0"));
             Hubs.get(3).take(new Message(2,"fichier0"));
+            Hubs.get(0).take(new Message(2,"fichier1"));
             Hub h3 = (Hub)Hubs.get(3);
             Hub h0 = (Hub)Hubs.get(0);
             Hub h2 = (Hub)Hubs.get(2);
@@ -92,13 +93,17 @@ public class Main {
             h1.setFakeDemande("fichier0",10);
             h2.setFakeDemande("fichier0",10);
             h3.setFakeDemande("fichier0",100);
+            h3.setFakeDemande("fichier1",101);
 
             h0.setFakeDemandeFromHubI("fichier0",10,1);
             h0.setFakeDemandeFromHubI("fichier0",10,2);
+            h0.setFakeDemandeFromHubI("fichier1",100,3);
 
             h3.setFakeDemandeFromHubI("fichier0",100,0);
             h3.setFakeDemandeFromHubI("fichier0",10,1);
             h3.setFakeDemandeFromHubI("fichier0",10,2);
+
+            h3.getCache().put("fichier1",new ArrayList<>(List.of(0)));
 
          for(int truc=0;truc<1;truc++)
             {
