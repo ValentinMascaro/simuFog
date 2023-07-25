@@ -111,12 +111,14 @@ public class Hub extends AbstractNode {
                 {
                     List<Integer> newPoids= newPref(listeRetour.get(re).hubIDemande);
                     List<Integer> newPref = getAsIndexList(newPoids);
+                 //   System.out.println("replique "+presence.get(re)+" liste de pref "+newPref);
                     if(newPref.indexOf(this.getId())<newPref.indexOf(presence.get(re)))
                     {
                         newPrefByReplique.add(new Pair(presence.get(re),new Pair(newPoids.get(this.getId()),listeRetour.get(re).distance)));
                     }
                 }
                newPrefByReplique=sortPairs(newPrefByReplique);
+                //System.out.println("Hub "+this.getId()+" file :"+filename+" "+newPrefByReplique+" presence "+presence);
                 //System.out.println(newPrefByReplique);
                 for(int re=0;re<newPrefByReplique.size();re++)
                 {
@@ -235,8 +237,11 @@ public class Hub extends AbstractNode {
             //   if(this.routingTable.get(hubId).getId()==hubId){
             if(this.cache.containsKey(filename))
             {
-                System.out.println("Hub "+this.getId()+" "+filename+" "+this.cache.get(filename));
-                this.cache.get(filename).add(hubId);
+                //System.out.println("readTo Hub "+this.getId()+" "+filename+" "+this.cache.get(filename));
+                if(!this.cache.get(filename).contains(hubId)){
+                    this.cache.get(filename).add(hubId);
+                }
+                //System.out.println("readTo Hub "+this.getId()+" "+filename+" "+this.cache.get(filename));
             }
             else
             {
@@ -252,9 +257,9 @@ public class Hub extends AbstractNode {
     @Override
     public Message give(Message msg) {
         String filename = msg.nomFichier;
-        System.out.println("hub "+this.getId()+" try to give "+msg.nomFichier);
+
         if(fichiersHub.containsKey(filename)) {
-            System.out.println(" i got it bro");
+
             this.fichiersHub.get(filename).addHubIdemande(msg.source);
             //  System.out.println("Hub "+this.getId()+" lecture de "+filename+" sur la node "+this.fichierNode.get(filename).getNode().getId());
             return new Message(1, this.getId(), filename, msg.source, msg.distance, fichiersHub.get(filename).getHubIDemande());
@@ -274,35 +279,36 @@ public class Hub extends AbstractNode {
                     this.fichierDemande.put(msg.nomFichier, this.fichiersHub.get(msg.nomFichier));
                     this.fichiersHub.remove(msg.nomFichier);
                     this.nbrFichier--;
-                    this.cache.put(msg.nomFichier,new ArrayList<>(List.of(msg.source)));
-                    System.out.println("remove "+msg.nomFichier);
+                    //System.out.println("Hub"+this.getId()+"remove "+msg.nomFichier);
                     if(nbrFichier<nbrFichierMax)
                     {
-                        System.out.println("Hub"+this.getId()+"nbfichier");
-                        if(!fichierDemande.isEmpty()) {
-                            String iwantthatfile = meilleurFichierDemande().getNom();
 
+                        if(!fichierDemande.isEmpty()) {
+                            fichierDemande meilleurFichier = meilleurFichierDemande();
+                            String iwantthatfile=meilleurFichier.getNom();
                             if (this.cache.containsKey(iwantthatfile)) {
-                                System.out.println(iwantthatfile);
-                                System.out.println("cache contient ");
+
                                 List<Integer> pref = this.cache.get(iwantthatfile);
-                                System.out.println(pref);
+                                //System.out.println("Hub"+this.getId()+" cache = "+pref);
                                 for (Integer p : pref) {
-                                    System.out.println("Hub "+this.getId()+" try to read in "+p);
-                                    if (this.readTo(new Message(1, iwantthatfile, p, this.getId())).msgType == 1) {
-                                        System.out.println("read "+iwantthatfile);
+                                    //System.out.println("Hub "+this.getId()+" try to read "+iwantthatfile+" in "+p);
+                                    Message retour =this.readTo(new Message(1, iwantthatfile, p, this.getId()));
+                                    if (retour.msgType==1) {
+                                        //System.out.println("Hub"+this.getId()+" read "+iwantthatfile);
                                         if (this.removeTo(new Message(1, iwantthatfile, p, this.getId())).msgType == 1) {
-                                            System.out.println("shouldn't happen");
+                                       //     System.out.println("Hub"+this.getId()+" got "+iwantthatfile+" from "+p);
                                             this.take(new Message(2, iwantthatfile));
+                                            this.fichiersHub.get(iwantthatfile).setHubIDemandeGlobal(retour.hubIDemande);
                                             break;
                                         }
-                                        System.out.println("Hub "+p+" said no :( for "+iwantthatfile);
+                                     //   System.out.println("Hub"+this.getId()+" Hub "+p+" said no :( for "+iwantthatfile);
                                     }
-
+                                   // System.out.println("Hub "+this.getId()+" couldn't read "+iwantthatfile+" from "+p);
                                 }
                             }
                         }
                     }
+                    this.cache.put(msg.nomFichier,new ArrayList<>(List.of(msg.source)));
                     return new Message(1);
                 }
                 return new Message(0);
@@ -424,7 +430,9 @@ public class Hub extends AbstractNode {
             //if(this.routingTable.get(h).getId()==h){
             if(this.cache.containsKey(filename))
             {
-                this.cache.get(filename).add(h);
+                if(!this.cache.get(filename).contains(msg.destinataire)){
+                    this.cache.get(filename).add(msg.destinataire);
+                }
             }
             else
             {
@@ -461,7 +469,7 @@ public class Hub extends AbstractNode {
     }
     private fichierDemande meilleurFichierDemande() {
         String keyWithSmallestNumber = null;
-        int biggestNumber = 0;
+        int biggestNumber = Integer.MIN_VALUE;
         for (Map.Entry<String, fichierDemande> entry : fichierDemande.entrySet()) {
             if(entry.getValue().isLibre()) {
                 int number = entry.getValue().getDemande();

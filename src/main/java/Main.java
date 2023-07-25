@@ -23,7 +23,7 @@ public class Main {
         double Chordstore=0;
         double Chordwrited=0;
         double Chordglob=0;
-        List<List<Integer>> _topology = new ArrayList<>(List.of(
+        List<List<Integer>> topology = new ArrayList<>(List.of(
                 List.of(1, 4), // hub 0
                 List.of(0, 4, 3), // hub 1
                 List.of(7, 8), // hub 2
@@ -41,7 +41,7 @@ public class Main {
                 List.of(13, 15),//hub 14
                 List.of(14) // hub 15
         ));
-        List<List<Integer>> topology = new ArrayList<>(List.of(
+        List<List<Integer>> _topology = new ArrayList<>(List.of(
                 List.of(1), // hub 0
                 List.of(0,2), // hub 1
                 List.of(1,3), // hub 2
@@ -51,9 +51,9 @@ public class Main {
         for(int test=0;test<nbrTest;test++) {
             int F = 10;
             int S = 300000;
-            int C = 1;
-            int R = 2;
-            int limitCache=2;
+            int C = 2;
+            int R = 3;
+            int limitCache=10;
             List<AbstractNode> Hubs = new ArrayList<>();
             Time time=new Time();
             for (int i = 0; i < topology.size(); i++) {
@@ -77,12 +77,12 @@ public class Main {
          //   System.out.println(Hubs.get(0).topoLocal);
            // System.out.println(Hubs.get(15).topoLocal);
             //System.out.println(Hubs.get(0).);
-           // simuExpoNew(Hubs, F, S, seed, C, R);
+           //
             //Hubs.get(0).store(new Message(1,"fichier0","fichier0"),1);
 
           //   Hubs.get(0).take(new Message(2,"fichier0"));
 
-           Hubs.get(0).take(new Message(2,"fichier0"));
+       /*    Hubs.get(0).take(new Message(2,"fichier0"));
             Hubs.get(3).take(new Message(2,"fichier0"));
             Hubs.get(0).take(new Message(2,"fichier1"));
             Hub h3 = (Hub)Hubs.get(3);
@@ -119,8 +119,9 @@ public class Main {
             {
                 Hubs.get(2).read("fichier0",1);
             }*/
-            // simuExpo(nodeChords, F, S, seed, C, R);
-
+             simuExpo(nodeChords, F, S, seed, C, R);
+            simuExpoNew(Hubs, F, S, seed, C, R);
+            Hubs.get(14).read("fichier0",2);
             List<Integer> ASFINcrease = Hubs.stream().map(f->f.getChargeReseauxIncrease()).toList();
             List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
             List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
@@ -134,7 +135,7 @@ public class Main {
             ASFwrite += ASFWrite.stream().mapToInt(Integer::intValue).sum();
             ASFincrease += ASFINcrease.stream().mapToInt(Integer::intValue).sum();
 
-            System.out.println(test);
+            System.out.println("test : "+test);
             List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
             List<Integer> chordRead = nodeChords.stream().map(f -> f.getChargeReseauxRead()).toList();
             List<Integer> chordStore = nodeChords.stream().map(f -> f.getChargeReseauxStore()).toList();

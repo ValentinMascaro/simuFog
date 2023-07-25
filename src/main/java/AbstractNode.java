@@ -262,7 +262,9 @@ public class AbstractNode implements Nodes{
             //if(this.routingTable.get(hubId).getId()==hubId){
             if(this.cache.containsKey(filename))
             {
-                this.cache.get(filename).add(hubId);
+                if(!this.cache.get(filename).contains(hubId)){
+                    this.cache.get(filename).add(hubId);
+                }
             }
             else
             {

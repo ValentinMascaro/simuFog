@@ -107,4 +107,8 @@ public class fichierDemande {
     public HashMap<Integer, Integer> getHubIDemande() {
         return hubIDemande;
     }
+
+    public void setHubIDemandeGlobal(HashMap<Integer, Integer> hubIDemande) {
+        this.hubIDemande=hubIDemande;
+    }
 }
