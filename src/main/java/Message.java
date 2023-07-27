@@ -9,6 +9,7 @@ public class Message {
     public int poidsFichier;
     public int distance;
     public HashMap<Integer,Integer> hubIDemande;
+    public int replique;
     public Message(int msgType, String nomFichier, String contenuFichier, int destinataire, int poidsFichier,int distance) {
         this.msgType = msgType;
         this.nomFichier = nomFichier;
@@ -34,10 +35,21 @@ public class Message {
         this.nomFichier = nomFichier;
         this.contenuFichier = contenuFichier;
     }
+    public Message(int msgType, String nomFichier, String contenuFichier,int replique) {
+        this.msgType = msgType;
+        this.nomFichier = nomFichier;
+        this.contenuFichier = contenuFichier;
+        this.replique=replique;
+    }
     public Message(int msgType, String nomFichier) {
         this.msgType = msgType;
         this.nomFichier = nomFichier;
 
+    }
+    public Message(int msgType, String nomFichier,int replique) {
+        this.msgType = msgType;
+        this.nomFichier = nomFichier;
+        this.replique=replique;
     }
     public Message(int msgType, String nomFichier, int destinataire, int source) {
         this.msgType = msgType;

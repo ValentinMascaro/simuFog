@@ -11,16 +11,16 @@ public class EventReader {
     public void playNextEvent()
     {
         Event nextEvent = timeline.getNextEvent();
-        Event resultingEvent=null;
+        List<Event> resultingEvent=null;
         Integer timeEventStarted = nextEvent.time;
         switch (nextEvent.function) {
-            case "read" -> resultingEvent=hub.get(nextEvent.message.destinataire).read(nextEvent.message.nomFichier, message.replique); // TODO msg avec replique
+            case "read" -> resultingEvent=hub.get(nextEvent.message.destinataire).read(nextEvent.message.nomFichier, nextEvent.message.replique); // TODO msg avec replique
             case "readTo" ->resultingEvent=hub.get(nextEvent.message.destinataire).readTo(nextEvent.message);
 
-            case "store" -> resultingEvent=hub.get(nextEvent.message.destinataire).store(nextEvent.message, message.replique);
+            case "store" -> resultingEvent=hub.get(nextEvent.message.destinataire).store(nextEvent.message, nextEvent.message.replique);
             case "storeTo" ->resultingEvent=hub.get(nextEvent.message.destinataire).storeTo(nextEvent.message);
 
-            case "write" -> resultingEvent=hub.get(nextEvent.message.destinataire).write(nextEvent.message, message.replique);
+            case "write" -> resultingEvent=hub.get(nextEvent.message.destinataire).write(nextEvent.message, nextEvent.message.replique);
             case "writeTo" ->resultingEvent=hub.get(nextEvent.message.destinataire).writeTo(nextEvent.message);
 
             case "increaseTo" ->resultingEvent=hub.get(nextEvent.message.destinataire).increaseTo(nextEvent.message);

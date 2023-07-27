@@ -356,9 +356,10 @@ public class Hub extends AbstractNode {
 
 
     @Override
-    public Message write(Message msg, int replique) {
+    public Message write(Message msg) {
         this.chargeReseauxWrite+=1;
         String filename=msg.nomFichier;
+        int replique = msg.replique;
         List<Integer> presence = new ArrayList<>();
         List<Integer> pref = pref(filename,topologyMoyenneGlobal);
         //System.out.println("/!\\Hub "+this.getId()+" rewriting "+filename+" by "+newContenu);

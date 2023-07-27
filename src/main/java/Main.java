@@ -199,13 +199,13 @@ public class Main {
             if (!alreadyEncounter.contains(tmp.first())) {
 
                 alreadyEncounter.add(tmp.first());
-                hubs.get(tmp.second()).store(new Message(1,"fichier" + tmp.first()), R);
+                hubs.get(tmp.second()).store(new Message(1,"fichier" + tmp.first(),R));
             } else {
                 double rand50 = rand.nextDouble();
                 if (rand50 < 0.5) {
-                    hubs.get(tmp.second()).read("fichier" + tmp.first(), C);
+                    hubs.get(tmp.second()).read("fichier" + tmp.first(),C );
                 } else {
-                    hubs.get(tmp.second()).write(new Message(1,"fichier" + tmp.first(),"reecriture"+s), C);
+                    hubs.get(tmp.second()).write(new Message(1,"fichier" + tmp.first(),"reecriture"+s,C));
                 }
             }
             s++;

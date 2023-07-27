@@ -1,3 +1,5 @@
+import org.checkerframework.checker.units.qual.A;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -5,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class AbstractNode implements Nodes{
+    protected HashMap<String,State> storeState;
 
     protected List<Integer> djkistra;
     protected List<AbstractNode> voisins; // liste des hub voisins
@@ -205,13 +208,19 @@ public class AbstractNode implements Nodes{
         return null;
     }
     @Override
-    public Message store(Message msg, int replique) {
+    public Event store(Message msg) {
         chargeReseauxStore+=1;
+        int replique = msg.replique;
         String filename=msg.nomFichier;
         List<Integer> pref = pref(msg.nomFichier,this.topologyMoyenneGlobal);
+        State state=new State();
+        state.message=msg;
+        this.storeState.put(msg.nomFichier,state);
+
         int r=0;
         int i=0;
         List<Integer> presence =new ArrayList<>();
+        List<Event> events=new ArrayList<>();
         while(r<replique)
         {
             if(i>=pref.size())
@@ -230,14 +239,11 @@ public class AbstractNode implements Nodes{
                 this.nbrFichierMax=increase;
                 i=0;
             }
-            //  if(pref.get(i)==this.getId()){chargeReseaux-=1;} // on ne compte pas un envoi vers soit meme comme une charge réseaux
-            //System.out.println("Hub "+this.getId()+ " : Ask "+pref.get(i)+" to store "+filename);
+
             if(this.storeTo(new Message(1,msg.nomFichier,msg.contenuFichier,pref.get(i),1)).msgType==1)
             {
                 r++;
                 presence.add(pref.get(i));
-                // TODO cache
-                //  System.out.println("Hub "+this.getId()+" Succesfully store "+filename + " in "+pref.get(i));
             }
             i++;
 
@@ -286,7 +292,7 @@ public class AbstractNode implements Nodes{
     public Message take(Message msg){
         System.out.println("takeAb");return null;}
     @Override
-    public Message write(Message msg, int replique) {
+    public Message write(Message msg) {
         System.out.println("write");
         return null;
     }
