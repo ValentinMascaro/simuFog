@@ -193,7 +193,7 @@ public class AbstractNode implements Nodes{
         return this.chargeReseauxIncrease+this.chargeReseauxReStore+this.chargeReseauxStore+this.chargeReseauxWrite+this.chargeReseauxRead;
     }
     @Override
-    public Message read(String filename, int replique) {
+    public Message read(Message msg) {
         System.out.println("ab");
         return null;
     }
@@ -205,7 +205,8 @@ public class AbstractNode implements Nodes{
         return null;
     }
     @Override
-    public Message store(Message msg, int replique) {
+    public Message store(Message msg) {
+        int replique = msg.replique;
         chargeReseauxStore+=1;
         String filename=msg.nomFichier;
         List<Integer> pref = pref(msg.nomFichier,this.topologyMoyenneGlobal);
@@ -242,6 +243,7 @@ public class AbstractNode implements Nodes{
             i++;
 
         }
+      //  System.out.println("Hub "+this.getId()+" stored "+filename+" at "+presence);
         this.cache.put(filename,presence);
         //  System.out.println("Hub "+this.getId()+" stored "+filename+" in hub : "+this.fichiersHub.get(filename)+" pref was "+pref);
         return new Message(1,msg.nomFichier, msg.contenuFichier, -1,-1); // on répond juste true en gros
@@ -257,24 +259,8 @@ public class AbstractNode implements Nodes{
         chargeReseauxStore+=1;
         // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
         //return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
-        if(this.routingTable.get(hubId).storeTo(msg).msgType==1) // si un de mes voisins dit avoir un fichier, autant le retenir dans mon cache
-        {
-            //if(this.routingTable.get(hubId).getId()==hubId){
-            if(this.cache.containsKey(filename))
-            {
-                if(!this.cache.get(filename).contains(hubId)){
-                    this.cache.get(filename).add(hubId);
-                }
-            }
-            else
-            {
-                this.cache.put(filename,new ArrayList<>(hubId));
-            }
-            return new Message(1,null,null,-1,-1);
-            //}
-            //return true;
-        }
-        return new Message(0);
+        return routingTable.get(hubId).storeTo(msg);
+
     }
     public boolean reStore(Message msg)
     {
@@ -286,7 +272,7 @@ public class AbstractNode implements Nodes{
     public Message take(Message msg){
         System.out.println("takeAb");return null;}
     @Override
-    public Message write(Message msg, int replique) {
+    public Message write(Message msg) {
         System.out.println("write");
         return null;
     }

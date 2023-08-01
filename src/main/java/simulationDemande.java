@@ -6,9 +6,8 @@ public class simulationDemande {
     private int id;
     private List<Integer> nombreDemandeParHubI;
 
-    public simulationDemande(int id, int S,int F, int H,int seed) {
+    public simulationDemande(int id, int S,int F, int H,Random rand) {
         this.id = id;
-        Random rand=new Random(seed);
         this.nombreDemandeParHubI=new ArrayList<>();
         Double tmpPoidsHub = rand.nextExponential();
         for(int i=0;i<H;i++)

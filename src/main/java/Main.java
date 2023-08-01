@@ -11,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
 
         int nbrTest=1;
-        int seed = 200;
+        int seed = 1;
         double ASFread=0;
         double ASFstore=0;
         double ASFreStore=0;
@@ -49,7 +49,7 @@ public class Main {
 
         ));
         for(int test=0;test<nbrTest;test++) {
-            int F = 10;
+            int F = 50;
             int S = 300000;
             int C = 2;
             int R = 3;
@@ -82,13 +82,15 @@ public class Main {
 
           //   Hubs.get(0).take(new Message(2,"fichier0"));
 
-       /*    Hubs.get(0).take(new Message(2,"fichier0"));
+/*           Hubs.get(0).take(new Message(2,"fichier0"));
+            Hubs.get(0).take(new Message(2,"fichier0"));
             Hubs.get(3).take(new Message(2,"fichier0"));
-            Hubs.get(0).take(new Message(2,"fichier1"));
-            Hub h3 = (Hub)Hubs.get(3);
+            Hubs.get(0).take(new Message(2,"fichier1"));/**/
+            /*Hub h3 = (Hub)Hubs.get(3);
             Hub h0 = (Hub)Hubs.get(0);
             Hub h2 = (Hub)Hubs.get(2);
             Hub h1 = (Hub)Hubs.get(1);
+            /*
             h0.setFakeDemande("fichier0",100);
             h1.setFakeDemande("fichier0",10);
             h2.setFakeDemande("fichier0",10);
@@ -105,23 +107,38 @@ public class Main {
 
             h3.getCache().put("fichier1",new ArrayList<>(List.of(0)));
 
+
+
          for(int truc=0;truc<1;truc++)
             {
-                Hubs.get(1).read("fichier0",2);
+                Hubs.get(1).read(new Message("fichier0",2));
             }
-/*
+
             for(int truc=0;truc<10;truc++)
             {
-                Hubs.get(1).read("fichier0",1);
+                Hubs.get(1).read(new Message("fichier0",2));
 
             }
             for(int truc=0;truc<10;truc++)
             {
-                Hubs.get(2).read("fichier0",1);
-            }*/
+                Hubs.get(2).read(new Message("fichier0",2));
+            }
+
+
+            Hubs.get(0).store(new Message("fichier1",3));
+
+            Hubs.get(0).store(new Message("fichier2",3));
+
+            Hubs.get(0).store(new Message("fichier3",3));
+
+            Hubs.get(0).store(new Message("fichier0",3));
+
+            System.out.println("Lecture");
+            Hubs.get(0).read(new Message("fichier0",3));
+/**/
              simuExpo(nodeChords, F, S, seed, C, R);
             simuExpoNew(Hubs, F, S, seed, C, R);
-            Hubs.get(14).read("fichier0",2);
+
             List<Integer> ASFINcrease = Hubs.stream().map(f->f.getChargeReseauxIncrease()).toList();
             List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
             List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
@@ -173,7 +190,7 @@ public class Main {
         List<Integer> alreadyEncounter = new ArrayList<>();
 
         Random rand = new Random(seed);
-        simuleDemande(0,S,F,H,seed,simulation);
+        simuleDemande(0,S,F,H,rand,simulation);
         int nbrFile=F/10;
         int s = 0;
         int simulationSize = simulation.size();
@@ -183,7 +200,7 @@ public class Main {
             //System.out.println("s "+s);
             //  System.out.println(s);
             if (s >= simulationSize * 0.1) {
-                simuleDemande(nbrFile,S,F,H,seed,simulation);
+                simuleDemande(nbrFile,S,F,H,rand,simulation);
                 nbrFile+=F/10;
                 simulationSize = simulation.size();
                 time++;
@@ -199,13 +216,13 @@ public class Main {
             if (!alreadyEncounter.contains(tmp.first())) {
 
                 alreadyEncounter.add(tmp.first());
-                hubs.get(tmp.second()).store(new Message(1,"fichier" + tmp.first()), R);
+                hubs.get(tmp.second()).store(new Message("fichier" + tmp.first(),R));
             } else {
                 double rand50 = rand.nextDouble();
-                if (rand50 < 0.5) {
-                    hubs.get(tmp.second()).read("fichier" + tmp.first(), C);
+                if (rand50<0.5) {
+                    hubs.get(tmp.second()).read(new Message("fichier" + tmp.first(), C));
                 } else {
-                    hubs.get(tmp.second()).write(new Message(1,"fichier" + tmp.first(),"reecriture"+s), C);
+                    hubs.get(tmp.second()).write(new Message("fichier" + tmp.first(),"reecriture"+s, C));
                 }
             }
             s++;
@@ -214,14 +231,14 @@ public class Main {
         return alreadyEncounter;
     }
 
-    public static void simuleDemande(int nbrFile,int S,int F,int H, int seed,LinkedList<Pair<Integer,Integer>> simulation)
+    public static void simuleDemande(int nbrFile,int S,int F,int H, Random rand,LinkedList<Pair<Integer,Integer>> simulation)
     {
-        Random rand=new Random(seed);
+        //Random rand=new Random(seed);
         for (int i = 0; i < F / 10; i++) {
-            simulationDemande simulationFichieri = new simulationDemande(nbrFile++, S, F, H, seed);
+            simulationDemande simulationFichieri = new simulationDemande(nbrFile++, S, F, H, rand);
             for (int h = 0; h < H; h++) {
                 simulation.addAll(simulationFichieri.getHFi(h));
-                seed++;
+
             }
         }
         Collections.shuffle(simulation, rand);
@@ -233,7 +250,7 @@ public class Main {
         List<Integer> alreadyEncounter = new ArrayList<>();
 
         Random rand = new Random(seed);
-        simuleDemande(0,S,F,H,seed,simulation);
+        simuleDemande(0,S,F,H,rand,simulation);
         int nbrFile=F/10;
         int s = 0;
         int simulationSize = simulation.size();
@@ -243,7 +260,7 @@ public class Main {
             //System.out.println("s "+s);
             //  System.out.println(s);
             if (s >= simulationSize * 0.1) {
-                simuleDemande(nbrFile,S,F,H,seed,simulation);
+                simuleDemande(nbrFile,S,F,H,rand,simulation);
                 nbrFile+=F/10;
                 simulationSize = simulation.size();
                 time++;
@@ -262,7 +279,7 @@ public class Main {
                 hubs.get(tmp.second()).store("fichier" + tmp.first(), R);
             } else {
                 double rand50 = rand.nextDouble();
-                if (rand50 < 0.5) {
+                if (rand50<0.5) {
                     hubs.get(tmp.second()).read("fichier" + tmp.first(), C);
                 } else {
                     hubs.get(tmp.second()).write("fichier" + tmp.first(), "reecriture" + s, C);

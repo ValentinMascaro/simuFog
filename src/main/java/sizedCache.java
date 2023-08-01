@@ -12,8 +12,10 @@ public class sizedCache implements cache{
     private Integer sizeLimit;
     private Integer size;
     private boolean isFull;
-    public sizedCache(Integer sizeLimit)
+    private int id;
+    public sizedCache(Integer sizeLimit,int id)
     {
+        this.id=id;
         this.positionHub=new HashMap<>();
       //  this.positionCache=new HashMap<>();
         this.sizeLimit=sizeLimit;
@@ -24,10 +26,12 @@ public class sizedCache implements cache{
 
     public List<Integer> get(String filename)
     {
+
         if(positionHub.containsKey(filename))
         {
             cache.remove(filename);
             cache.addFirst(filename);
+
             return positionHub.get(filename);
         }
         else
@@ -38,6 +42,11 @@ public class sizedCache implements cache{
     }
     public void put(String filename,List<Integer> position)
     {
+        /*System.out.println("Hub "+this.id+" put "+filename+" at "+position+" size : "+size+" / "+sizeLimit);
+        for(String key : positionHub.keySet())
+        {
+            System.out.println("    "+key+" "+positionHub.get(key));
+        }*/
         if(cache.isEmpty())
         {
             size++;
@@ -56,6 +65,7 @@ public class sizedCache implements cache{
         }
 
         cache.addFirst(filename);
+        positionHub.put(filename,position);
         if(isFull){
             String last=cache.getLast();
             cache.remove(last);
@@ -63,7 +73,7 @@ public class sizedCache implements cache{
             return;
         }
         size++;
-        if(size==sizeLimit)
+        if(size.equals(sizeLimit))
         {
             isFull=true;
         }
@@ -83,7 +93,7 @@ public class sizedCache implements cache{
     public void remove(String filename)
     {
         this.size--;
-        if(size>sizeLimit)
+        if(size<sizeLimit)
         {
             isFull=false;
         }
