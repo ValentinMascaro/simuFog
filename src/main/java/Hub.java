@@ -104,7 +104,9 @@ public class Hub extends AbstractNode {
             i++;
         }
        // System.out.println("    Hub "+this.getId()+" found "+filename+" at hubs "+presence);
+        boolean success=false;
         if(fichierDemande.containsKey(filename)) {
+
             if (!this.fichiersHub.containsKey(filename) && nbrFichier<nbrFichierMax){
                 List<Pair<Integer,Pair<Integer,Integer>>> newPrefByReplique = new ArrayList<>(); // pair poids,distance
                 for(int re=0;re<presence.size();re++)
@@ -124,11 +126,33 @@ public class Hub extends AbstractNode {
                         this.take(new Message(2,filename));
                         presence.remove(Integer.valueOf(newPrefByReplique.get(re).first()));
                         presence.add(this.getId());
+                        success=true;
                         break;
                     }
                 }
                 }
           }
+        if(success)
+        {
+            if(!fichierDemande.isEmpty()) {
+                fichierDemande pireFichierDemande = pireFichierDemande();
+                String thatFileIsBadlyPlaced = pireFichierDemande.getNom();
+                List<Integer> newPoids = newPref(this.fichiersHub.get(thatFileIsBadlyPlaced).getHubIDemande());
+                List<Integer> newPref = getAsIndexList(newPoids);
+                for(Integer p : newPref)
+                {
+                    if(p==this.getId()){break;}
+                    Message retour = this.reStoreTo(new Message(3, this.getId(), thatFileIsBadlyPlaced, p, 0, fichiersHub.get(thatFileIsBadlyPlaced).getHubIDemande()));
+                    if(retour.msgType==1)
+                    {
+                        this.fichierDemande.put(thatFileIsBadlyPlaced,pireFichierDemande);
+                        nbrFichier--;
+                        this.fichiersHub.remove(thatFileIsBadlyPlaced);
+                        break;
+                    }
+                }
+            }
+        }
         if(cache.containsKey(filename))
         {
             cache.remove(filename);
@@ -231,17 +255,16 @@ public class Hub extends AbstractNode {
         return routingTable.get(hubId).readTo(msg);
         
     }
-    public Message reStoreTo(Message msg) {
-        int hubId= msg.destinataire;
-        String filename= msg.nomFichier;
-        if(this.getId()==hubId)
+    public Message reStoreTo(Message msg) { // copie de store, juste pour comptabilisé les restore
+        int hubId=msg.destinataire;
+        String filename=msg.nomFichier;
+        if(hubId==this.getId())
         {
-            return give(msg);
+            return this.take(msg);
         }
-        msg.distance+=1;
-        chargeReseauxReStore+=1; //1724 4556
-        //System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
-        //return this.routingTable.get(hubId).readTo(filename,hubId);
+        chargeReseauxReStore+=1;
+        // System.out.println("Hub "+this.getId()+" go by "+routingTable.get(hubId).getId());
+        //return this.routingTable.get(hubId).storeTo(filename,hubId,poids);
         return routingTable.get(hubId).reStoreTo(msg);
 
     }
@@ -273,7 +296,7 @@ public class Hub extends AbstractNode {
                     this.fichiersHub.remove(msg.nomFichier);
                     this.nbrFichier--;
                     //System.out.println("Hub"+this.getId()+"remove "+msg.nomFichier);
-                    if(nbrFichier<nbrFichierMax)
+                    if(false)//(nbrFichier<nbrFichierMax)
                     {
                         if(!fichierDemande.isEmpty()) {
                             fichierDemande meilleurFichier = meilleurFichierDemande();
@@ -315,7 +338,8 @@ public class Hub extends AbstractNode {
     @Override
     public Message take(Message msg) {
         String filename = msg.nomFichier;
-        if(msg.msgType==2)
+
+        if(msg.msgType==2) // force take
         {
             this.nbrFichier++;
             int demande=0;
@@ -339,8 +363,8 @@ public class Hub extends AbstractNode {
                 this.fichierDemande.remove(filename);
             }
             this.fichiersHub.put(filename,new fichierDemande(demande,filename));
-            if(msg.msgType==2){
-
+            if(msg.msgType==3){
+                this.fichiersHub.get(msg.nomFichier).setHubIDemandeGlobal(msg.hubIDemande);
             }
             return new Message(1,filename,msg.contenuFichier,msg.destinataire, msg.poidsFichier);
         }

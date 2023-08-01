@@ -10,20 +10,18 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String[] args) {
 
-        int nbrTest=1;
-        int seed = 1;
-        double ASFread=0;
-        double ASFstore=0;
-        double ASFreStore=0;
-        double ASFwrite=0;
-        double ASFglob=0;
-        double ASFincrease=0;
 
-        double Chordread=0;
-        double Chordstore=0;
-        double Chordwrited=0;
-        double Chordglob=0;
-        List<List<Integer>> topology = new ArrayList<>(List.of(
+
+
+        int nbrFichierMaxDepart=2;
+        int F = 10;
+        int S = 100000;
+        int C = 4;
+        int R = 6;
+        int limitCache=10;
+
+
+                List<List<Integer>> topology = new ArrayList<>(List.of(
                 List.of(1, 4), // hub 0
                 List.of(0, 4, 3), // hub 1
                 List.of(7, 8), // hub 2
@@ -48,139 +46,102 @@ public class Main {
                 List.of(2) //hub 3
 
         ));
-        for(int test=0;test<nbrTest;test++) {
-            int F = 50;
-            int S = 300000;
-            int C = 2;
-            int R = 3;
-            int limitCache=10;
-            List<AbstractNode> Hubs = new ArrayList<>();
-            Time time=new Time();
-            for (int i = 0; i < topology.size(); i++) {
-                Hubs.add(new Hub(i, 2,limitCache));
-            }
-           for (int i = 0; i < topology.size(); i++) {
-                Hubs.get(i).setVoisins(topology.get(i).stream().map(f -> Hubs.get(f)).toList());
-                Hubs.get(i).setTopology(topology);
-                  Hubs.get(i).TopologyMoyenne();
-            }
+        for(;F<70;F+=10) {
+            int seed = 1;
+            double ASFread=0;
+            double ASFstore=0;
+            double ASFreStore=0;
+            double ASFwrite=0;
+            double ASFglob=0;
+            double ASFincrease=0;
 
-            //System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
-            List<AbstractCompo> nodeChords = new ArrayList<>();
-            for (int i = 0; i < 16; i++) {
-                nodeChords.add(new NodeChord(i, topology, 160));
-            }
-            for (int i = 0; i < topology.size(); i++) {
-                nodeChords.get(i).setVoisins(topology.get(i).stream().map(f -> nodeChords.get(f)).toList());
-                nodeChords.get(i).setTopology();
-            }
-         //   System.out.println(Hubs.get(0).topoLocal);
-           // System.out.println(Hubs.get(15).topoLocal);
-            //System.out.println(Hubs.get(0).);
-           //
-            //Hubs.get(0).store(new Message(1,"fichier0","fichier0"),1);
+            double Chordread=0;
+            double Chordstore=0;
+            double Chordwrited=0;
+            double Chordglob=0;
+            int test=0;
+            double preAvg=Double.MAX_VALUE;
+            double avg=0.0;
+            double epsilon = S/10.0;
+            do {
 
-          //   Hubs.get(0).take(new Message(2,"fichier0"));
+                List<AbstractNode> Hubs = new ArrayList<>();
+                //Time time=new Time();
+                for (int i = 0; i < topology.size(); i++) {
+                    Hubs.add(new Hub(i, nbrFichierMaxDepart, limitCache));
+                }
+                for (int i = 0; i < topology.size(); i++) {
+                    Hubs.get(i).setVoisins(topology.get(i).stream().map(f -> Hubs.get(f)).toList());
+                    Hubs.get(i).setTopology(topology);
+                    Hubs.get(i).TopologyMoyenne();
+                }
 
-/*           Hubs.get(0).take(new Message(2,"fichier0"));
-            Hubs.get(0).take(new Message(2,"fichier0"));
-            Hubs.get(3).take(new Message(2,"fichier0"));
-            Hubs.get(0).take(new Message(2,"fichier1"));/**/
-            /*Hub h3 = (Hub)Hubs.get(3);
-            Hub h0 = (Hub)Hubs.get(0);
-            Hub h2 = (Hub)Hubs.get(2);
-            Hub h1 = (Hub)Hubs.get(1);
-            /*
-            h0.setFakeDemande("fichier0",100);
-            h1.setFakeDemande("fichier0",10);
-            h2.setFakeDemande("fichier0",10);
-            h3.setFakeDemande("fichier0",100);
-            h3.setFakeDemande("fichier1",101);
+                List<AbstractCompo> nodeChords = new ArrayList<>();
+                for (int i = 0; i < 16; i++) {
+                    nodeChords.add(new NodeChord(i, topology, 160));
+                }
+                for (int i = 0; i < topology.size(); i++) {
+                    nodeChords.get(i).setVoisins(topology.get(i).stream().map(f -> nodeChords.get(f)).toList());
+                    nodeChords.get(i).setTopology();
+                }
+                simuExpo(nodeChords, F, S, seed, C, R);
+                simuExpoNew(Hubs, F, S, seed, C, R);
 
-            h0.setFakeDemandeFromHubI("fichier0",10,1);
-            h0.setFakeDemandeFromHubI("fichier0",10,2);
-            h0.setFakeDemandeFromHubI("fichier1",100,3);
+                List<Integer> ASFINcrease = Hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
+                List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
+                List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
+                List<Integer> ASFReStore = Hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
+                List<Integer> ASFWrite = Hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
+                List<Integer> ASFGlobal = Hubs.stream().map(f -> f.getChargeReseaux()).toList();
+                ASFglob += ASFGlobal.stream().mapToInt(Integer::intValue).sum();
+                ASFstore += ASFStore.stream().mapToInt(Integer::intValue).sum();
+                ASFread += ASFRead.stream().mapToInt(Integer::intValue).sum();
+                ASFreStore += ASFReStore.stream().mapToInt(Integer::intValue).sum();
+                ASFwrite += ASFWrite.stream().mapToInt(Integer::intValue).sum();
+                ASFincrease += ASFINcrease.stream().mapToInt(Integer::intValue).sum();
 
-            h3.setFakeDemandeFromHubI("fichier0",100,0);
-            h3.setFakeDemandeFromHubI("fichier0",10,1);
-            h3.setFakeDemandeFromHubI("fichier0",10,2);
+                //   System.out.println("test : "+test);
+                List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
+                List<Integer> chordRead = nodeChords.stream().map(f -> f.getChargeReseauxRead()).toList();
+                List<Integer> chordStore = nodeChords.stream().map(f -> f.getChargeReseauxStore()).toList();
+                List<Integer> chordWrite = nodeChords.stream().map(f -> f.getChargeReseauxWrite()).toList();
+                Chordglob += listCharge2.stream().mapToInt(Integer::intValue).sum();
+                Chordstore += chordStore.stream().mapToInt(Integer::intValue).sum();
+                Chordread += chordRead.stream().mapToInt(Integer::intValue).sum();
+                Chordwrited += chordWrite.stream().mapToInt(Integer::intValue).sum();
+                seed++;
 
-            h3.getCache().put("fichier1",new ArrayList<>(List.of(0)));
+                //System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
+                //System.out.println("--");
+                for (AbstractNode hubAclose : Hubs) {
+                    hubAclose.closeCache();
+                }
+                preAvg = avg;
+                avg = ASFglob / ++test;
+                if (test % 100 == 0) {
+                    System.out.println("avg : " + avg + " preAvg " + preAvg);
+                }
+            } while (Math.abs(preAvg - avg) > epsilon || test < 100);
+            System.out.println("Contexte");
+            System.out.println("    Nbr file " + F);
+            System.out.println("    Nbr demande " + S);
+            System.out.println("    Limite cache " + limitCache);
+            System.out.println("    Nbr replique " + R);
+            System.out.println("    Chorum " + C);
 
-
-
-         for(int truc=0;truc<1;truc++)
-            {
-                Hubs.get(1).read(new Message("fichier0",2));
-            }
-
-            for(int truc=0;truc<10;truc++)
-            {
-                Hubs.get(1).read(new Message("fichier0",2));
-
-            }
-            for(int truc=0;truc<10;truc++)
-            {
-                Hubs.get(2).read(new Message("fichier0",2));
-            }
-
-
-            Hubs.get(0).store(new Message("fichier1",3));
-
-            Hubs.get(0).store(new Message("fichier2",3));
-
-            Hubs.get(0).store(new Message("fichier3",3));
-
-            Hubs.get(0).store(new Message("fichier0",3));
-
-            System.out.println("Lecture");
-            Hubs.get(0).read(new Message("fichier0",3));
-/**/
-             simuExpo(nodeChords, F, S, seed, C, R);
-            simuExpoNew(Hubs, F, S, seed, C, R);
-
-            List<Integer> ASFINcrease = Hubs.stream().map(f->f.getChargeReseauxIncrease()).toList();
-            List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
-            List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
-            List<Integer> ASFReStore = Hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
-            List<Integer> ASFWrite = Hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
-            List<Integer> ASFGlobal = Hubs.stream().map(f -> f.getChargeReseaux()).toList();
-            ASFglob += ASFGlobal.stream().mapToInt(Integer::intValue).sum();
-            ASFstore += ASFStore.stream().mapToInt(Integer::intValue).sum();
-            ASFread += ASFRead.stream().mapToInt(Integer::intValue).sum();
-            ASFreStore += ASFReStore.stream().mapToInt(Integer::intValue).sum();
-            ASFwrite += ASFWrite.stream().mapToInt(Integer::intValue).sum();
-            ASFincrease += ASFINcrease.stream().mapToInt(Integer::intValue).sum();
-
-            System.out.println("test : "+test);
-            List<Integer> listCharge2 = nodeChords.stream().map(f -> f.getChargeReseaux()).toList();
-            List<Integer> chordRead = nodeChords.stream().map(f -> f.getChargeReseauxRead()).toList();
-            List<Integer> chordStore = nodeChords.stream().map(f -> f.getChargeReseauxStore()).toList();
-            List<Integer> chordWrite = nodeChords.stream().map(f -> f.getChargeReseauxWrite()).toList();
-            Chordglob+=listCharge2.stream().mapToInt(Integer::intValue).sum();
-            Chordstore+=chordStore.stream().mapToInt(Integer::intValue).sum();
-            Chordread+=chordRead.stream().mapToInt(Integer::intValue).sum();
-            Chordwrited+=chordWrite.stream().mapToInt(Integer::intValue).sum();
-            seed++;
-
-           System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
-            System.out.println("--");
-            for(AbstractNode hubAclose : Hubs)
-            {
-                hubAclose.closeCache();
-            }
+            System.out.println("Resultat ");
+            System.out.println("    ASF");
+            System.out.println("        ASF global : " + ASFglob / test);
+            System.out.println("        ASF Read : " + ASFread / test);
+            System.out.println("        ASF Write : " + ASFwrite / test);
+            System.out.println("        ASF Store : " + ASFstore / test + " Restore : " + ASFreStore / test + " Increase : " + ASFincrease / test);
+            System.out.println("    Chord");
+            ;
+            System.out.println("        Chord global : " + Chordglob / test);
+            System.out.println("        Chord Read : " + Chordread / test);
+            System.out.println("        Chord Write : " + Chordwrited / test);
+            System.out.println("        Chord Store : " + Chordstore / test);
         }
-        System.out.println("ASF global : "+ ASFglob/nbrTest);
-        System.out.println("Chord global : "+ Chordglob/nbrTest);
-
-        System.out.println("ASF Read : "+ ASFread/nbrTest);
-        System.out.println("Chord Read : "+ Chordread/nbrTest);
-
-        System.out.println("ASF Write : "+ ASFwrite/nbrTest);
-        System.out.println("Chord Write : "+ Chordwrited/nbrTest);
-
-        System.out.println("ASF Store : "+ ASFstore/nbrTest +" Restore : "+ASFreStore/nbrTest + " Increase : "+ASFincrease/nbrTest);
-        System.out.println("Chord Store : "+ Chordstore/nbrTest);
     }
 
     private static List<Integer>  simuExpoNew(List<AbstractNode> hubs, int F, int S, int seed, int C, int R) {
