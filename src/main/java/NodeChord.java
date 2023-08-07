@@ -136,7 +136,7 @@ public class NodeChord extends AbstractCompo{ // TODO
             {
                 r++;
             }
-            if(i>3)
+            if(i>replique)
             {
                 System.out.println("Node "+this.getId()+"Can't find replica "+filename+" "+this.posHash(hash,i+1));
                 return false;
@@ -176,7 +176,7 @@ public class NodeChord extends AbstractCompo{ // TODO
             {
                 r++;
             }
-            if(i>3)
+            if(i>replique)
             {
                 System.out.println("Node "+this.getId()+"Can't find replica "+filename+" "+this.posHash(hash,i+1));
                 return false;

@@ -3,6 +3,8 @@ import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.SQLOutput;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,11 +16,11 @@ public class Main {
 
 
         int nbrFichierMaxDepart=2;
-        int F = 10;
+        int F = 100;
         int S = 100000;
         int C = 4;
         int R = 6;
-        int limitCache=10;
+        int limitCache=30;
 
 
                 List<List<Integer>> topology = new ArrayList<>(List.of(
@@ -46,23 +48,28 @@ public class Main {
                 List.of(2) //hub 3
 
         ));
-        for(;F<70;F+=10) {
+        try {
+            FileWriter File = new FileWriter("ASFstats.csv");
+            FileWriter File2 = new FileWriter("ChordStats.csv");
+        File.write("fichier;demande;cache;replique;chorum;global;read;store;write;restore;increase\n");
+            File2.write("fichier;demande;cache;replique;chorum;global;read;store;write\n");
+        for(;S<=100000;S+=100000) {
             int seed = 1;
-            double ASFread=0;
-            double ASFstore=0;
-            double ASFreStore=0;
-            double ASFwrite=0;
-            double ASFglob=0;
-            double ASFincrease=0;
+             double ASFread=0;
+             double ASFstore=0;
+             double ASFreStore=0;
+             double ASFwrite=0;
+             double ASFglob=0;
+             double ASFincrease=0;
 
-            double Chordread=0;
-            double Chordstore=0;
-            double Chordwrited=0;
-            double Chordglob=0;
+             double Chordread=0;
+             double Chordstore=0;
+             double Chordwrited=0;
+             double Chordglob=0;
             int test=0;
-            double preAvg=Double.MAX_VALUE;
-            double avg=0.0;
-            double epsilon = S/10.0;
+             double preAvg=Double.MAX_VALUE;
+             double avg=0.0;
+             double epsilon = S/10.0;
             do {
 
                 List<AbstractNode> Hubs = new ArrayList<>();
@@ -84,8 +91,9 @@ public class Main {
                     nodeChords.get(i).setVoisins(topology.get(i).stream().map(f -> nodeChords.get(f)).toList());
                     nodeChords.get(i).setTopology();
                 }
-                simuExpo(nodeChords, F, S, seed, C, R);
-                simuExpoNew(Hubs, F, S, seed, C, R);
+            //    simuExpo(nodeChords, F, S, seed, C, R);
+                //System.out.println(test);
+                simuExpoNewByFile(Hubs, F, S, seed, C, R,File,"fichier0");
 
                 List<Integer> ASFINcrease = Hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
                 List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
@@ -141,9 +149,132 @@ public class Main {
             System.out.println("        Chord Read : " + Chordread / test);
             System.out.println("        Chord Write : " + Chordwrited / test);
             System.out.println("        Chord Store : " + Chordstore / test);
+            File.write("\n");
+            //File.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+ASFglob / test+";"+ASFread/ test+";"+ASFstore/ test+";"+ASFwrite/ test+";"+ASFreStore/ test+";"+ASFincrease/ test+"\n");
+            //File2.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+Chordglob/ test+";"+Chordread/ test+";"+Chordstore/ test+";"+Chordwrited/ test+"\n");
+        }
+        File.close();File2.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
+    private static List<Integer>  simuExpoNewByFile(List<AbstractNode> hubs, int F, int S, int seed, int C, int R,FileWriter File,String fichier) {
+        int H = hubs.size(); // H nombre de hubs , F nombre de file , S nombre de demande TOTAL ( ecriture/lecture/reecriture )
+        //List<Pair<Integer,Integer>> simulation = new ArrayList<>();
+        LinkedList<Pair<Integer, Integer>> simulation = new LinkedList<>();
+        List<Integer> alreadyEncounter = new ArrayList<>();
+        Random rand = new Random(seed);
+        simuleDemande(0,S,F,H,rand,simulation);
+        int fichierUse=0;
+        int nbrFile=F/10;
+        int s = 0;
+        int simulationSize = simulation.size();
+        int time = 0;
+        while (alreadyEncounter.size() < F) {
+            // System.out.println("Taille de la simulation : "+simulation.size());
+            //System.out.println("s "+s);
+            //  System.out.println(s);
+            if (s >= simulationSize * 0.1) {
+                simuleDemande(nbrFile,S,F,H,rand,simulation);
+                nbrFile+=F/10;
+                simulationSize = simulation.size();
+                time++;
 
+                s = 0;
+            }
+            //if(s>=simulation.size()){break;} // can't control how long is simulation
+            Pair<Integer, Integer> tmp = simulation.poll();
+            if (tmp == null) {
+                System.out.println("ASF Simu fini prématurément :( "+S);
+                break;
+            }
+            if (!alreadyEncounter.contains(tmp.first())) {
+
+                alreadyEncounter.add(tmp.first());
+                hubs.get(tmp.second()).store(new Message("fichier" + tmp.first(),R));
+            } else {
+                double rand50 = rand.nextDouble();
+                double ASFread=0;
+                double ASFstore=0;
+                double ASFreStore=0;
+                double ASFwrite=0;
+                double ASFglob=0;
+                double ASFincrease=0;
+                double ASFread2=0;
+                double ASFstore2=0;
+                double ASFreStore2=0;
+                double ASFwrite2=0;
+                double ASFglob2=0;
+                double ASFincrease2=0;
+                boolean todo=false;
+                if(fichier.equals("fichier"+tmp.first()))
+                {
+                    fichierUse++;
+                    List<Integer> ASFINcrease = hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
+                    List<Integer> ASFRead = hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
+                    List<Integer> ASFStore = hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
+                    List<Integer> ASFReStore = hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
+                    List<Integer> ASFWrite = hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
+                    List<Integer> ASFGlobal = hubs.stream().map(f -> f.getChargeReseaux()).toList();
+                     ASFglob = ASFGlobal.stream().mapToInt(Integer::intValue).sum();
+                     ASFstore = ASFStore.stream().mapToInt(Integer::intValue).sum();
+                     ASFread = ASFRead.stream().mapToInt(Integer::intValue).sum();
+                     ASFreStore = ASFReStore.stream().mapToInt(Integer::intValue).sum();
+                     ASFwrite = ASFWrite.stream().mapToInt(Integer::intValue).sum();
+                     ASFincrease = ASFINcrease.stream().mapToInt(Integer::intValue).sum();
+                    todo = true;
+                }
+                if (rand50<0.5) {
+                    hubs.get(tmp.second()).read(new Message("fichier" + tmp.first(), C));
+                    if(todo)
+                    {
+                        List<Integer> ASFINcrease = hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
+                        List<Integer> ASFRead = hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
+                        List<Integer> ASFStore = hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
+                        List<Integer> ASFReStore = hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
+                        List<Integer> ASFWrite = hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
+                        List<Integer> ASFGlobal = hubs.stream().map(f -> f.getChargeReseaux()).toList();
+                        ASFglob2 = ASFGlobal.stream().mapToInt(Integer::intValue).sum();
+                        ASFstore2 = ASFStore.stream().mapToInt(Integer::intValue).sum();
+                        ASFread2 = ASFRead.stream().mapToInt(Integer::intValue).sum();
+                        ASFreStore2 = ASFReStore.stream().mapToInt(Integer::intValue).sum();
+                        ASFwrite2 = ASFWrite.stream().mapToInt(Integer::intValue).sum();
+                        ASFincrease2 = ASFINcrease.stream().mapToInt(Integer::intValue).sum();
+                        try {
+                            File.write(F+";"+S+";"+30+";"+R+";"+C+";"+(ASFglob2-ASFglob)+";"+(ASFread2-ASFread)+";"+(ASFstore2-ASFstore)+";"+(ASFwrite2-ASFwrite)+";"+(ASFreStore2-ASFreStore)+";"+(ASFincrease2-ASFincrease)+";"+(fichierUse)+";"+("fichier" + tmp.first())+"\n");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                } else {
+                    hubs.get(tmp.second()).write(new Message("fichier" + tmp.first(),"reecriture"+s, C));
+                    if(todo)
+                    {
+                        List<Integer> ASFINcrease = hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
+                        List<Integer> ASFRead = hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
+                        List<Integer> ASFStore = hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
+                        List<Integer> ASFReStore = hubs.stream().map(f -> f.getChargeReseauxReStore()).toList();
+                        List<Integer> ASFWrite = hubs.stream().map(f -> f.getChargeReseauxWrite()).toList();
+                        List<Integer> ASFGlobal = hubs.stream().map(f -> f.getChargeReseaux()).toList();
+                        ASFglob2 = ASFGlobal.stream().mapToInt(Integer::intValue).sum();
+                        ASFstore2 = ASFStore.stream().mapToInt(Integer::intValue).sum();
+                        ASFread2 = ASFRead.stream().mapToInt(Integer::intValue).sum();
+                        ASFreStore2 = ASFReStore.stream().mapToInt(Integer::intValue).sum();
+                        ASFwrite2 = ASFWrite.stream().mapToInt(Integer::intValue).sum();
+                        ASFincrease2 = ASFINcrease.stream().mapToInt(Integer::intValue).sum();
+                        try {
+                            File.write(F+";"+S+";"+30+";"+R+";"+C+";"+(ASFglob2-ASFglob)+";"+(ASFread2-ASFread)+";"+(ASFstore2-ASFstore)+";"+(ASFwrite2-ASFwrite)+";"+(ASFreStore2-ASFreStore)+";"+(ASFincrease2-ASFincrease)+";"+(fichierUse)+";"+("fichier" + tmp.first())+"\n");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+            s++;
+        }
+        //  System.out.println("S = "+s+" / "+S);
+        return alreadyEncounter;
+    }
     private static List<Integer>  simuExpoNew(List<AbstractNode> hubs, int F, int S, int seed, int C, int R) {
         int H = hubs.size(); // H nombre de hubs , F nombre de file , S nombre de demande TOTAL ( ecriture/lecture/reecriture )
         //List<Pair<Integer,Integer>> simulation = new ArrayList<>();
@@ -171,7 +302,7 @@ public class Main {
             //if(s>=simulation.size()){break;} // can't control how long is simulation
             Pair<Integer, Integer> tmp = simulation.poll();
             if (tmp == null) {
-                System.out.println("Simu fini prématurément :( ");
+                System.out.println("ASF Simu fini prématurément :( "+S);
                 break;
             }
             if (!alreadyEncounter.contains(tmp.first())) {
@@ -231,7 +362,7 @@ public class Main {
             //if(s>=simulation.size()){break;} // can't control how long is simulation
             Pair<Integer, Integer> tmp = simulation.poll();
             if (tmp == null) {
-                System.out.println("Simu fini prématurément :( ");
+                System.out.println("Chord Simu fini prématurément :( "+S);
                 break;
             }
             if (!alreadyEncounter.contains(tmp.first())) {
