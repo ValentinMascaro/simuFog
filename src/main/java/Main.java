@@ -16,7 +16,7 @@ public class Main {
 
 
         int nbrFichierMaxDepart=2;
-        int F = 100;
+        int F = 200;
         int S = 100000;
         int C = 4;
         int R = 6;
@@ -53,8 +53,11 @@ public class Main {
             FileWriter File2 = new FileWriter("ChordStats.csv");
         File.write("fichier;demande;cache;replique;chorum;global;read;store;write;restore;increase\n");
             File2.write("fichier;demande;cache;replique;chorum;global;read;store;write\n");
-        for(;S<=100000;S+=100000) {
+        for(;S<=600000;S+=10000) {
+            limitCache= (int) (F*0.3);
+           // S+=10000;
             int seed = 1;
+            int ecarttype=1;
              double ASFread=0;
              double ASFstore=0;
              double ASFreStore=0;
@@ -91,10 +94,10 @@ public class Main {
                     nodeChords.get(i).setVoisins(topology.get(i).stream().map(f -> nodeChords.get(f)).toList());
                     nodeChords.get(i).setTopology();
                 }
-            //    simuExpo(nodeChords, F, S, seed, C, R);
+                simuExpo(nodeChords, F, S, seed, C, R);
                 //System.out.println(test);
-                simuExpoNewByFile(Hubs, F, S, seed, C, R,File,"fichier0");
-
+//                simuExpoNewByFile(Hubs, F, S, seed, C, R,File,"fichier0");
+                simuExpoNew(Hubs, F, S, seed, C, R,ecarttype);
                 List<Integer> ASFINcrease = Hubs.stream().map(f -> f.getChargeReseauxIncrease()).toList();
                 List<Integer> ASFRead = Hubs.stream().map(f -> f.getChargeReseauxRead()).toList();
                 List<Integer> ASFStore = Hubs.stream().map(f -> f.getChargeReseauxStore()).toList();
@@ -119,7 +122,7 @@ public class Main {
                 Chordwrited += chordWrite.stream().mapToInt(Integer::intValue).sum();
                 seed++;
 
-                //System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
+               // System.out.println(Hubs.stream().map(f -> "Hubs " + f.getId() + " : " + f.getNbrFichier() + " / " + f.getNbrFichierMax() + " " + f.getFichierDemande() + "\n").toList());
                 //System.out.println("--");
                 for (AbstractNode hubAclose : Hubs) {
                     hubAclose.closeCache();
@@ -149,9 +152,9 @@ public class Main {
             System.out.println("        Chord Read : " + Chordread / test);
             System.out.println("        Chord Write : " + Chordwrited / test);
             System.out.println("        Chord Store : " + Chordstore / test);
-            File.write("\n");
-            //File.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+ASFglob / test+";"+ASFread/ test+";"+ASFstore/ test+";"+ASFwrite/ test+";"+ASFreStore/ test+";"+ASFincrease/ test+"\n");
-            //File2.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+Chordglob/ test+";"+Chordread/ test+";"+Chordstore/ test+";"+Chordwrited/ test+"\n");
+           // File.write("\n");
+            File.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+ASFglob / test+";"+ASFread/ test+";"+ASFstore/ test+";"+ASFwrite/ test+";"+ASFreStore/ test+";"+ASFincrease/ test+"\n");
+            File2.write(F+";"+S+";"+limitCache+";"+R+";"+C+";"+Chordglob/ test+";"+Chordread/ test+";"+Chordstore/ test+";"+Chordwrited/ test+"\n");
         }
         File.close();File2.close();
         } catch (IOException e) {
@@ -164,7 +167,7 @@ public class Main {
         LinkedList<Pair<Integer, Integer>> simulation = new LinkedList<>();
         List<Integer> alreadyEncounter = new ArrayList<>();
         Random rand = new Random(seed);
-        simuleDemande(0,S,F,H,rand,simulation);
+        simuleDemande(0,S,F,H,rand,simulation,1);
         int fichierUse=0;
         int nbrFile=F/10;
         int s = 0;
@@ -175,7 +178,7 @@ public class Main {
             //System.out.println("s "+s);
             //  System.out.println(s);
             if (s >= simulationSize * 0.1) {
-                simuleDemande(nbrFile,S,F,H,rand,simulation);
+                simuleDemande(nbrFile,S,F,H,rand,simulation,1);
                 nbrFile+=F/10;
                 simulationSize = simulation.size();
                 time++;
@@ -275,14 +278,14 @@ public class Main {
         //  System.out.println("S = "+s+" / "+S);
         return alreadyEncounter;
     }
-    private static List<Integer>  simuExpoNew(List<AbstractNode> hubs, int F, int S, int seed, int C, int R) {
+    private static List<Integer>  simuExpoNew(List<AbstractNode> hubs, int F, int S, int seed, int C, int R, int ecarttype) {
         int H = hubs.size(); // H nombre de hubs , F nombre de file , S nombre de demande TOTAL ( ecriture/lecture/reecriture )
         //List<Pair<Integer,Integer>> simulation = new ArrayList<>();
         LinkedList<Pair<Integer, Integer>> simulation = new LinkedList<>();
         List<Integer> alreadyEncounter = new ArrayList<>();
 
         Random rand = new Random(seed);
-        simuleDemande(0,S,F,H,rand,simulation);
+        simuleDemande(0,S,F,H,rand,simulation,ecarttype);
         int nbrFile=F/10;
         int s = 0;
         int simulationSize = simulation.size();
@@ -292,7 +295,7 @@ public class Main {
             //System.out.println("s "+s);
             //  System.out.println(s);
             if (s >= simulationSize * 0.1) {
-                simuleDemande(nbrFile,S,F,H,rand,simulation);
+                simuleDemande(nbrFile,S,F,H,rand,simulation,ecarttype);
                 nbrFile+=F/10;
                 simulationSize = simulation.size();
                 time++;
@@ -323,11 +326,11 @@ public class Main {
         return alreadyEncounter;
     }
 
-    public static void simuleDemande(int nbrFile,int S,int F,int H, Random rand,LinkedList<Pair<Integer,Integer>> simulation)
+    public static void simuleDemande(int nbrFile,int S,int F,int H, Random rand,LinkedList<Pair<Integer,Integer>> simulation,int ecarttype)
     {
         //Random rand=new Random(seed);
         for (int i = 0; i < F / 10; i++) {
-            simulationDemande simulationFichieri = new simulationDemande(nbrFile++, S, F, H, rand);
+            simulationDemande simulationFichieri = new simulationDemande(nbrFile++, S, F, H, rand,ecarttype);
             for (int h = 0; h < H; h++) {
                 simulation.addAll(simulationFichieri.getHFi(h));
 
@@ -342,7 +345,7 @@ public class Main {
         List<Integer> alreadyEncounter = new ArrayList<>();
 
         Random rand = new Random(seed);
-        simuleDemande(0,S,F,H,rand,simulation);
+        simuleDemande(0,S,F,H,rand,simulation,1);
         int nbrFile=F/10;
         int s = 0;
         int simulationSize = simulation.size();
@@ -352,7 +355,7 @@ public class Main {
             //System.out.println("s "+s);
             //  System.out.println(s);
             if (s >= simulationSize * 0.1) {
-                simuleDemande(nbrFile,S,F,H,rand,simulation);
+                simuleDemande(nbrFile,S,F,H,rand,simulation,1);
                 nbrFile+=F/10;
                 simulationSize = simulation.size();
                 time++;
